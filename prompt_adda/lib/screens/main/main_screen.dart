@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import '../favorites/favorites_screen.dart';
 import '../../core/theme/app_colors.dart';
 import '../home/home_screen.dart';
 
@@ -15,24 +15,19 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = const [
-    HomeScreen(),
-    _PlaceholderScreen(
-      icon: Icons.local_fire_department_rounded,
-      title: 'Trending',
-      subtitle: 'Popular prompts will appear here.',
-    ),
-    _PlaceholderScreen(
-      icon: Icons.favorite_rounded,
-      title: 'Favorites',
-      subtitle: 'Your saved prompts will appear here.',
-    ),
-    _PlaceholderScreen(
-      icon: Icons.person_rounded,
-      title: 'Profile',
-      subtitle: 'Manage your preferences and settings.',
-    ),
-  ];
-
+  HomeScreen(),
+  _PlaceholderScreen(
+    icon: Icons.local_fire_department_rounded,
+    title: 'Trending',
+    subtitle: 'Popular prompts will appear here.',
+  ),
+  FavoritesScreen(),
+  _PlaceholderScreen(
+    icon: Icons.person_rounded,
+    title: 'Profile',
+    subtitle: 'Manage your preferences and settings.',
+  ),
+];
   void _changeTab(int index) {
     if (_selectedIndex == index) return;
 

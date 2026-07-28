@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../data/dummy_prompts.dart';
 import '../../models/prompt_model.dart';
 import '../prompt/prompt_details_screen.dart';
+import 'widgets/hero_carousel.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,9 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return prompt.title.toLowerCase().contains(query) ||
           prompt.category.toLowerCase().contains(query) ||
           prompt.description.toLowerCase().contains(query) ||
-          prompt.tags.any(
-            (tag) => tag.toLowerCase().contains(query),
-          );
+          prompt.tags.any((tag) => tag.toLowerCase().contains(query));
     }).toList();
 
     final isSearching = _searchQuery.trim().isNotEmpty;
@@ -74,9 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 26),
 
                     if (!isSearching && dummyPrompts.isNotEmpty) ...[
-                      _FeaturedCard(
-                        prompt: dummyPrompts.first,
-                      ),
+                      HeroCarousel(prompts: dummyPrompts.take(4).toList()),
                       const SizedBox(height: 30),
                       _SectionHeader(
                         title: 'Categories',
@@ -109,9 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (prompts.isEmpty)
                       const _EmptySearchResult()
                     else
-                      _TrendingList(
-                        prompts: prompts,
-                      ),
+                      _TrendingList(prompts: prompts),
                   ],
                 ),
               ),
@@ -221,10 +216,7 @@ class _SearchBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Row(
           children: [
-            const Icon(
-              Icons.search_rounded,
-              color: AppColors.primary,
-            ),
+            const Icon(Icons.search_rounded, color: AppColors.primary),
             const SizedBox(width: 12),
             Expanded(
               child: TextField(
@@ -263,158 +255,6 @@ class _SearchBar extends StatelessWidget {
                   ),
                 );
               },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FeaturedCard extends StatelessWidget {
-  final PromptModel prompt;
-
-  const _FeaturedCard({
-    required this.prompt,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(28),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PromptDetailsScreen(
-              prompt: prompt,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x387547D8),
-              blurRadius: 30,
-              offset: Offset(0, 16),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -35,
-              right: -25,
-              child: Container(
-                width: 125,
-                height: 125,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.10),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -55,
-              right: 50,
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.07),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.14),
-                    ),
-                  ),
-                  child: Text(
-                    '✨ ${prompt.category}',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  prompt.title,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 24,
-                    height: 1.2,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  prompt.description,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white.withValues(alpha: 0.82),
-                    fontSize: 13,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 11,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Explore Prompt',
-                        style: GoogleFonts.poppins(
-                          color: AppColors.primaryDark,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 18,
-                        color: AppColors.primaryDark,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ),
           ],
         ),
@@ -551,9 +391,7 @@ class _CategoriesGrid extends StatelessWidget {
 class _TrendingList extends StatelessWidget {
   final List<PromptModel> prompts;
 
-  const _TrendingList({
-    required this.prompts,
-  });
+  const _TrendingList({required this.prompts});
 
   @override
   Widget build(BuildContext context) {
@@ -567,9 +405,7 @@ class _TrendingList extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => PromptDetailsScreen(
-                    prompt: prompt,
-                  ),
+                  builder: (_) => PromptDetailsScreen(prompt: prompt),
                 ),
               );
             },
@@ -578,9 +414,7 @@ class _TrendingList extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.82),
                 borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: AppColors.divider,
-                ),
+                border: Border.all(color: AppColors.divider),
               ),
               child: Row(
                 children: [
@@ -591,17 +425,11 @@ class _TrendingList extends StatelessWidget {
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFFEBDDFF),
-                          Color(0xFFFFE9E2),
-                        ],
+                        colors: [Color(0xFFEBDDFF), Color(0xFFFFE9E2)],
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(
-                      prompt.icon,
-                      color: AppColors.primary,
-                    ),
+                    child: Icon(prompt.icon, color: AppColors.primary),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -641,6 +469,7 @@ class _TrendingList extends StatelessWidget {
     );
   }
 }
+
 class _EmptySearchResult extends StatelessWidget {
   const _EmptySearchResult();
 
@@ -648,16 +477,11 @@ class _EmptySearchResult extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 38,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 38),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.78),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppColors.divider,
-        ),
+        border: Border.all(color: AppColors.divider),
       ),
       child: Column(
         children: [
@@ -689,6 +513,7 @@ class _EmptySearchResult extends StatelessWidget {
     );
   }
 }
+
 class _BackgroundBlobs extends StatelessWidget {
   const _BackgroundBlobs();
 
