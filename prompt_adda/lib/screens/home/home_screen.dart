@@ -8,6 +8,7 @@ import '../../models/prompt_model.dart';
 import '../../services/favorites_service.dart';
 import '../prompt/prompt_details_screen.dart';
 import 'widgets/hero_carousel.dart';
+import '../categories/category_prompts_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -310,83 +311,243 @@ class _SectionHeader extends StatelessWidget {
 class _CategoriesGrid extends StatelessWidget {
   const _CategoriesGrid();
 
+  static const List<List<Color>> _categoryGradients = [
+    [Color(0xFF5B36C9), Color(0xFF8E5CE6)],
+    [Color(0xFFC84C74), Color(0xFFEC7C9F)],
+    [Color(0xFF176B87), Color(0xFF32A5B8)],
+    [Color(0xFFB86C21), Color(0xFFE9A444)],
+  ];
+
+  IconData _categoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'social media':
+        return Icons.forum_rounded;
+
+      case 'youtube':
+        return Icons.play_circle_fill_rounded;
+
+      case 'design':
+        return Icons.palette_rounded;
+
+      case 'coding':
+        return Icons.code_rounded;
+
+      case 'writing':
+        return Icons.edit_note_rounded;
+
+      case 'video':
+        return Icons.movie_creation_rounded;
+
+      default:
+        return Icons.auto_awesome_rounded;
+    }
+  }
+
+  void _openCategory(
+    BuildContext context, {
+    required String category,
+    required List<PromptModel> prompts,
+    required IconData icon,
+    required List<Color> gradient,
+  }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CategoryPromptsScreen(
+          category: category,
+          prompts: prompts,
+          icon: icon,
+          gradient: gradient,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final categories = [
-      (icon: Icons.image_outlined, title: 'Image AI', subtitle: '120 prompts'),
-      (icon: Icons.code_rounded, title: 'Coding', subtitle: '90 prompts'),
-      (
-        icon: Icons.movie_creation_outlined,
-        title: 'Video',
-        subtitle: '72 prompts',
-      ),
-      (
-        icon: Icons.edit_note_rounded,
-        title: 'Writing',
-        subtitle: '110 prompts',
-      ),
-    ];
+    final categoryNames = <String>[];
+
+    for (final prompt in dummyPrompts) {
+      if (!categoryNames.contains(prompt.category)) {
+        categoryNames.add(prompt.category);
+      }
+    }
 
     return GridView.builder(
-      itemCount: categories.length,
+      itemCount: categoryNames.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 14,
         mainAxisSpacing: 14,
-        childAspectRatio: 1.35,
+        childAspectRatio: 1.08,
       ),
       itemBuilder: (context, index) {
-        final category = categories[index];
+        final category = categoryNames[index];
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.80),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.divider),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0C000000),
-                blurRadius: 20,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(category.icon, color: AppColors.primary),
-              ),
-              const Spacer(),
-              Text(
-                category.title,
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                category.subtitle,
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
+        final categoryPrompts = dummyPrompts
+            .where((prompt) => prompt.category == category)
+            .toList();
+
+        final gradient = _categoryGradients[index % _categoryGradients.length];
+
+        final icon = _categoryIcon(category);
+
+        return _PremiumCategoryCard(
+          category: category,
+          promptCount: categoryPrompts.length,
+          icon: icon,
+          gradient: gradient,
+          onTap: () {
+            _openCategory(
+              context,
+              category: category,
+              prompts: categoryPrompts,
+              icon: icon,
+              gradient: gradient,
+            );
+          },
         );
       },
+    );
+  }
+}
+
+class _PremiumCategoryCard extends StatelessWidget {
+  const _PremiumCategoryCard({
+    required this.category,
+    required this.promptCount,
+    required this.icon,
+    required this.gradient,
+    required this.onTap,
+  });
+
+  final String category;
+  final int promptCount;
+  final IconData icon;
+  final List<Color> gradient;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: gradient,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: gradient.first.withValues(alpha: 0.20),
+                blurRadius: 22,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: -35,
+                  right: -30,
+                  child: Container(
+                    width: 115,
+                    height: 115,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.10),
+                    ),
+                  ),
+                ),
+
+                Positioned(
+                  right: -8,
+                  bottom: -12,
+                  child: Icon(
+                    icon,
+                    size: 82,
+                    color: Colors.white.withValues(alpha: 0.13),
+                  ),
+                ),
+
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.24),
+                              ),
+                            ),
+                            child: Icon(icon, color: Colors.white, size: 22),
+                          ),
+
+                          const Spacer(),
+
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.16),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.arrow_outward_rounded,
+                              size: 17,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const Spacer(),
+
+                      Text(
+                        category,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Text(
+                        '$promptCount ${promptCount == 1 ? 'prompt' : 'prompts'}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.78),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
