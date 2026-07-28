@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../main/main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -15,12 +15,13 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late final AnimationController _introController;
-  late final AnimationController _waveController;
+  late final AnimationController _entryController;
+  late final AnimationController _pulseController;
 
   late final Animation<double> _fadeAnimation;
   late final Animation<double> _scaleAnimation;
   late final Animation<Offset> _slideAnimation;
+  late final Animation<double> _pulseAnimation;
 
   Timer? _navigationTimer;
 
@@ -28,223 +29,260 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    _introController = AnimationController(
+    _entryController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1100),
     );
 
-    _waveController = AnimationController(
+    _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 6),
-    )..repeat();
+      duration: const Duration(milliseconds: 1400),
+    );
 
     _fadeAnimation = CurvedAnimation(
-      parent: _introController,
-      curve: Curves.easeOut,
+      parent: _entryController,
+      curve: const Interval(
+        0.0,
+        0.75,
+        curve: Curves.easeOut,
+      ),
     );
 
     _scaleAnimation = Tween<double>(
-      begin: 0.82,
+      begin: 0.72,
       end: 1,
     ).animate(
       CurvedAnimation(
-        parent: _introController,
-        curve: Curves.easeOutBack,
+        parent: _entryController,
+        curve: Curves.elasticOut,
       ),
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.18),
+      begin: const Offset(0, 0.30),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(
-        parent: _introController,
-        curve: Curves.easeOutCubic,
+        parent: _entryController,
+        curve: const Interval(
+          0.20,
+          1,
+          curve: Curves.easeOutCubic,
+        ),
       ),
     );
 
-    _introController.forward();
+    _pulseAnimation = Tween<double>(
+      begin: 0.97,
+      end: 1.04,
+    ).animate(
+      CurvedAnimation(
+        parent: _pulseController,
+        curve: Curves.easeInOut,
+      ),
+    );
 
-    _navigationTimer = Timer(const Duration(milliseconds: 2400), () {
-      if (!mounted) return;
+    _entryController.forward();
 
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 650),
-          pageBuilder: (_, animation, secondaryAnimation) {
-            return const MainScreen();
-          },
-          transitionsBuilder: (_, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
+    _pulseController.repeat(
+      reverse: true,
+    );
+
+    _navigationTimer = Timer(
+      const Duration(milliseconds: 2500),
+      _openMainScreen,
+    );
+  }
+
+  void _openMainScreen() {
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder<void>(
+        pageBuilder: (
+          context,
+          animation,
+          secondaryAnimation,
+        ) {
+          return const MainScreen();
+        },
+        transitionDuration: const Duration(
+          milliseconds: 650,
         ),
-      );
-    });
+        transitionsBuilder: (
+          context,
+          animation,
+          secondaryAnimation,
+          child,
+        ) {
+          return FadeTransition(
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOut,
+            ),
+            child: child,
+          );
+        },
+      ),
+    );
   }
 
   @override
   void dispose() {
     _navigationTimer?.cancel();
-    _introController.dispose();
-    _waveController.dispose();
+    _entryController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          const Positioned.fill(
-            child: _PremiumGradientBackground(),
-          ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: AppColors.appBackgroundGradient,
+        ),
+        child: Stack(
+          children: [
+            const _SplashBackgroundDecoration(),
 
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _waveController,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: _AnimatedWavePainter(
-                    progress: _waveController.value,
-                  ),
-                );
-              },
-            ),
-          ),
-
-          SafeArea(
-            child: Center(
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ScaleTransition(
-                        scale: _scaleAnimation,
-                        child: const _PromptAddaLogo(),
-                      ),
-                      const SizedBox(height: 30),
-                      RichText(
-                        text: TextSpan(
-                          style: GoogleFonts.poppins(
-                            fontSize: 42,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -1.5,
+            SafeArea(
+              child: Center(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ScaleTransition(
+                          scale: _scaleAnimation,
+                          child: ScaleTransition(
+                            scale: _pulseAnimation,
+                            child: const _LogoCard(),
                           ),
-                          children: const [
-                            TextSpan(
-                              text: 'Prompt ',
-                              style: TextStyle(
-                                color: Color(0xFF171728),
-                              ),
-                            ),
-                            TextSpan(
-                              text: 'Adda',
-                              style: TextStyle(
-                                color: Color(0xFF7547D8),
-                              ),
-                            ),
-                          ],
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Create Better with AI',
-                        style: GoogleFonts.poppins(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w400,
-                          color: const Color(0xFF646475),
-                          letterSpacing: 0.3,
+
+                        const SizedBox(height: 28),
+
+                        Text(
+                          'Prompt Adda',
+                          style: GoogleFonts.poppins(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -1,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 25),
-                      const _AccentDivider(),
-                    ],
+
+                        const SizedBox(height: 8),
+
+                        Text(
+                          'Create Better with AI',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.4,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        Container(
+                          width: 48,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
-class _PremiumGradientBackground extends StatelessWidget {
-  const _PremiumGradientBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFF2E9FF),
-            Color(0xFFFFFAF8),
-            Color(0xFFF8F1FF),
-            Color(0xFFFFEDE8),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 28,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Text(
+                  'Ideas begin with the right prompt',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.3,
+                    color: AppColors.textSecondary.withValues(
+                      alpha: 0.72,
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
-          stops: [0, 0.38, 0.7, 1],
         ),
       ),
     );
   }
 }
 
-class _PromptAddaLogo extends StatelessWidget {
-  const _PromptAddaLogo();
+class _LogoCard extends StatelessWidget {
+  const _LogoCard();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 132,
-      height: 132,
+      width: 104,
+      height: 104,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(34),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFA776FF),
-            Color(0xFF7441D7),
-            Color(0xFF4B249A),
-          ],
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.65),
+          width: 1.4,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x407743D8),
-            blurRadius: 34,
-            offset: Offset(0, 18),
+            color: AppColors.primary.withValues(alpha: 0.24),
+            blurRadius: 38,
+            spreadRadius: 2,
+            offset: const Offset(0, 18),
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.75),
+            blurRadius: 15,
+            offset: const Offset(-5, -5),
           ),
         ],
       ),
       child: Stack(
+        alignment: Alignment.center,
         children: [
-          Center(
-            child: Text(
-              'PA',
-              style: GoogleFonts.poppins(
-                fontSize: 52,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: -5,
+          Positioned(
+            top: 10,
+            right: 12,
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.16),
+                shape: BoxShape.circle,
               ),
             ),
           ),
-          const Positioned(
-            top: 18,
-            right: 18,
-            child: Icon(
-              Icons.auto_awesome,
-              size: 24,
+          Text(
+            'PA',
+            style: GoogleFonts.poppins(
+              fontSize: 34,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -1.5,
               color: Colors.white,
             ),
           ),
@@ -254,134 +292,57 @@ class _PromptAddaLogo extends StatelessWidget {
   }
 }
 
-class _AccentDivider extends StatelessWidget {
-  const _AccentDivider();
+class _SplashBackgroundDecoration extends StatelessWidget {
+  const _SplashBackgroundDecoration();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Stack(
       children: [
-        Container(
-          width: 70,
-          height: 1.5,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.transparent,
-                Color(0xFF9D76E8),
-              ],
+        Positioned(
+          top: -90,
+          right: -80,
+          child: Container(
+            width: 230,
+            height: 230,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primary.withValues(alpha: 0.08),
             ),
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Icon(
-            Icons.auto_awesome,
-            size: 16,
-            color: Color(0xFF8B5DE0),
+        Positioned(
+          left: -110,
+          bottom: 70,
+          child: Container(
+            width: 260,
+            height: 260,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFFFB69B).withValues(
+                alpha: 0.10,
+              ),
+            ),
           ),
         ),
-        Container(
-          width: 70,
-          height: 1.5,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF9D76E8),
-                Colors.transparent,
-              ],
+        Positioned(
+          left: 32,
+          right: 32,
+          bottom: 105,
+          child: Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  AppColors.primary.withValues(alpha: 0.16),
+                  Colors.transparent,
+                ],
+              ),
             ),
           ),
         ),
       ],
     );
-  }
-}
-
-class _AnimatedWavePainter extends CustomPainter {
-  const _AnimatedWavePainter({
-    required this.progress,
-  });
-
-  final double progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final firstPaint = Paint()
-      ..shader = const LinearGradient(
-        colors: [
-          Color(0x22FF8EA8),
-          Color(0x337C4DFF),
-          Color(0x228E7CFF),
-        ],
-      ).createShader(
-        Rect.fromLTWH(0, size.height * 0.62, size.width, size.height * 0.38),
-      );
-
-    final secondPaint = Paint()
-      ..shader = const LinearGradient(
-        colors: [
-          Color(0x18FFFFFF),
-          Color(0x337B4DE2),
-          Color(0x22E483D4),
-        ],
-      ).createShader(
-        Rect.fromLTWH(0, size.height * 0.7, size.width, size.height * 0.3),
-      );
-
-    final phase = progress * math.pi * 2;
-
-    final firstWave = Path()
-      ..moveTo(0, size.height * 0.76)
-      ..cubicTo(
-        size.width * 0.22,
-        size.height * (0.68 + 0.025 * math.sin(phase)),
-        size.width * 0.48,
-        size.height * (0.83 + 0.02 * math.cos(phase)),
-        size.width * 0.72,
-        size.height * (0.71 + 0.025 * math.sin(phase)),
-      )
-      ..cubicTo(
-        size.width * 0.88,
-        size.height * 0.64,
-        size.width,
-        size.height * 0.7,
-        size.width,
-        size.height * 0.7,
-      )
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    final secondWave = Path()
-      ..moveTo(0, size.height * 0.84)
-      ..cubicTo(
-        size.width * 0.2,
-        size.height * (0.93 + 0.015 * math.cos(phase)),
-        size.width * 0.5,
-        size.height * (0.75 + 0.02 * math.sin(phase)),
-        size.width * 0.76,
-        size.height * (0.83 + 0.02 * math.cos(phase)),
-      )
-      ..cubicTo(
-        size.width * 0.9,
-        size.height * 0.87,
-        size.width,
-        size.height * 0.81,
-        size.width,
-        size.height * 0.81,
-      )
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    canvas.drawPath(firstWave, firstPaint);
-    canvas.drawPath(secondWave, secondPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _AnimatedWavePainter oldDelegate) {
-    return oldDelegate.progress != progress;
   }
 }

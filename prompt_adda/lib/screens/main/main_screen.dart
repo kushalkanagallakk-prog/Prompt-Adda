@@ -45,10 +45,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(18, 0, 18, 14),
         child: _PremiumBottomNavigation(
@@ -96,10 +93,7 @@ class _PremiumBottomNavigation extends StatelessWidget {
 
     return Container(
       height: 74,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(26),
@@ -161,19 +155,13 @@ class _NavigationButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 280),
           curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 5,
-            vertical: 8,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
           decoration: BoxDecoration(
             gradient: isSelected
                 ? const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFECDDFF),
-                      Color(0xFFFFEBE5),
-                    ],
+                    colors: [Color(0xFFECDDFF), Color(0xFFFFEBE5)],
                   )
                 : null,
             borderRadius: BorderRadius.circular(19),
@@ -184,10 +172,7 @@ class _NavigationButton extends StatelessWidget {
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
                 transitionBuilder: (child, animation) {
-                  return ScaleTransition(
-                    scale: animation,
-                    child: child,
-                  );
+                  return ScaleTransition(scale: animation, child: child);
                 },
                 child: Icon(
                   isSelected ? item.selectedIcon : item.icon,
@@ -203,8 +188,7 @@ class _NavigationButton extends StatelessWidget {
                 duration: const Duration(milliseconds: 220),
                 style: GoogleFonts.poppins(
                   fontSize: 10,
-                  fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
                       ? AppColors.primary
                       : AppColors.textSecondary,
@@ -273,11 +257,7 @@ class _PlaceholderScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Icon(
-                    icon,
-                    size: 38,
-                    color: Colors.white,
-                  ),
+                  child: Icon(icon, size: 38, color: Colors.white),
                 ),
                 const SizedBox(height: 24),
                 Text(
