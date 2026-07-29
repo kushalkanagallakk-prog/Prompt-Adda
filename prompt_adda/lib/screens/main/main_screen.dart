@@ -15,19 +15,19 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = const [
-  HomeScreen(),
-  _PlaceholderScreen(
-    icon: Icons.local_fire_department_rounded,
-    title: 'Trending',
-    subtitle: 'Popular prompts will appear here.',
-  ),
-  FavoritesScreen(),
-  _PlaceholderScreen(
-    icon: Icons.person_rounded,
-    title: 'Profile',
-    subtitle: 'Manage your preferences and settings.',
-  ),
-];
+    HomeScreen(),
+    _PlaceholderScreen(
+      icon: Icons.local_fire_department_rounded,
+      title: 'Trending',
+      subtitle: 'Popular prompts will appear here.',
+    ),
+    FavoritesScreen(),
+    _PlaceholderScreen(
+      icon: Icons.person_rounded,
+      title: 'Profile',
+      subtitle: 'Manage your preferences and settings.',
+    ),
+  ];
   void _changeTab(int index) {
     if (_selectedIndex == index) return;
 

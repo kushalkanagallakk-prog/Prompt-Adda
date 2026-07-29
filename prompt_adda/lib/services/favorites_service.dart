@@ -21,10 +21,7 @@ class FavoritesService {
 
     favoriteIds.add(promptId);
 
-    await prefs.setStringList(
-      _favoritesKey,
-      favoriteIds.toList(),
-    );
+    await prefs.setStringList(_favoritesKey, favoriteIds.toList());
   }
 
   static Future<void> removeFavorite(String promptId) async {
@@ -33,10 +30,7 @@ class FavoritesService {
 
     favoriteIds.remove(promptId);
 
-    await prefs.setStringList(
-      _favoritesKey,
-      favoriteIds.toList(),
-    );
+    await prefs.setStringList(_favoritesKey, favoriteIds.toList());
   }
 
   static Future<bool> toggleFavorite(String promptId) async {

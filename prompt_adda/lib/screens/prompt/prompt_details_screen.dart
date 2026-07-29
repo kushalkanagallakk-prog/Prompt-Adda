@@ -8,10 +8,7 @@ import '../../services/favorites_service.dart';
 class PromptDetailsScreen extends StatefulWidget {
   final PromptModel prompt;
 
-  const PromptDetailsScreen({
-    super.key,
-    required this.prompt,
-  });
+  const PromptDetailsScreen({super.key, required this.prompt});
 
   @override
   State<PromptDetailsScreen> createState() => _PromptDetailsScreenState();
@@ -75,12 +72,8 @@ class _PromptDetailsScreenState extends State<PromptDetailsScreen> {
               ),
               const SizedBox(width: 10),
               Text(
-                isFavorite
-                    ? 'Added to favorites!'
-                    : 'Removed from favorites',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w500,
-                ),
+                isFavorite ? 'Added to favorites!' : 'Removed from favorites',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -89,9 +82,7 @@ class _PromptDetailsScreenState extends State<PromptDetailsScreen> {
   }
 
   Future<void> _copyPrompt(BuildContext context) async {
-    await Clipboard.setData(
-      ClipboardData(text: prompt.prompt),
-    );
+    await Clipboard.setData(ClipboardData(text: prompt.prompt));
 
     if (!context.mounted) return;
 
@@ -106,16 +97,11 @@ class _PromptDetailsScreenState extends State<PromptDetailsScreen> {
           ),
           content: Row(
             children: [
-              const Icon(
-                Icons.check_circle_rounded,
-                color: Colors.white,
-              ),
+              const Icon(Icons.check_circle_rounded, color: Colors.white),
               const SizedBox(width: 10),
               Text(
                 'Prompt copied successfully!',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -123,13 +109,14 @@ class _PromptDetailsScreenState extends State<PromptDetailsScreen> {
       );
   }
 
-Future<void> _sharePrompt() async {
-  const playStoreLink =
-      'https://play.google.com/store/apps/details?id=com.example.prompt_adda';
+  Future<void> _sharePrompt() async {
+    const playStoreLink =
+        'https://play.google.com/store/apps/details?id=com.example.prompt_adda';
 
-  await SharePlus.instance.share(
-    ShareParams(
-      text: '''
+    await SharePlus.instance.share(
+      ShareParams(
+        text:
+            '''
 ✨ ${prompt.title}
 
 ${prompt.description}
@@ -141,9 +128,9 @@ ${prompt.prompt}
 📲 Download Prompt Adda:
 $playStoreLink
 ''',
-    ),
-  );
-}
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,139 +159,132 @@ $playStoreLink
       bottomNavigationBar: _buildBottomAction(context),
     );
   }
+
   Widget _buildHeader(BuildContext context) {
-  return Container(
-    width: double.infinity,
-    padding: const EdgeInsets.fromLTRB(20, 14, 20, 26),
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0xFF7C4DFF),
-          Color(0xFFB45CFF),
-          Color(0xFFFF7EB3),
-        ],
-      ),
-      borderRadius: BorderRadius.only(
-        bottomLeft: Radius.circular(32),
-        bottomRight: Radius.circular(32),
-      ),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Material(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () => Navigator.pop(context),
-                child: const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
-            ),
-            const Spacer(),
-            Material(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: _toggleFavorite,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: _isFavoriteLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (child, animation) {
-                            return ScaleTransition(
-                              scale: animation,
-                              child: child,
-                            );
-                          },
-                          child: Icon(
-                            _isFavorite
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            key: ValueKey(_isFavorite),
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                        ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Material(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: _sharePrompt,
-                child: const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Icon(
-                    Icons.share_rounded,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                ),
-              ),
-            ),
-          ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 26),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF7C4DFF), Color(0xFFB45CFF), Color(0xFFFF7EB3)],
         ),
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 8,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Material(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => Navigator.pop(context),
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Material(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: _toggleFavorite,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: _isFavoriteLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            transitionBuilder: (child, animation) {
+                              return ScaleTransition(
+                                scale: animation,
+                                child: child,
+                              );
+                            },
+                            child: Icon(
+                              _isFavorite
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              key: ValueKey(_isFavorite),
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Material(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: _sharePrompt,
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(
+                      Icons.share_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.20),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.25),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.20),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+            ),
+            child: Text(
+              '✨ ${prompt.category}',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          child: Text(
-            '✨ ${prompt.category}',
+          const SizedBox(height: 16),
+          Text(
+            prompt.title,
             style: GoogleFonts.poppins(
               color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+              fontSize: 27,
+              height: 1.25,
+              fontWeight: FontWeight.w700,
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          prompt.title,
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontSize: 27,
-            height: 1.25,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
+
   Widget _buildDescriptionCard() {
     return Container(
       width: double.infinity,
@@ -312,9 +292,7 @@ $playStoreLink
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: const Color(0xFFE9E3F8),
-        ),
+        border: Border.all(color: const Color(0xFFE9E3F8)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -331,17 +309,11 @@ $playStoreLink
             height: 46,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF7C4DFF),
-                  Color(0xFFB45CFF),
-                ],
+                colors: [Color(0xFF7C4DFF), Color(0xFFB45CFF)],
               ),
               borderRadius: BorderRadius.circular(15),
             ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              color: Colors.white,
-            ),
+            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
           ),
           const SizedBox(width: 15),
           Expanded(
@@ -379,10 +351,7 @@ $playStoreLink
       children: [
         Row(
           children: [
-            const Icon(
-              Icons.notes_rounded,
-              color: Color(0xFF7C4DFF),
-            ),
+            const Icon(Icons.notes_rounded, color: Color(0xFF7C4DFF)),
             const SizedBox(width: 9),
             Text(
               'Prompt',
@@ -401,9 +370,7 @@ $playStoreLink
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.90),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: const Color(0xFFE7DFFF),
-            ),
+            border: Border.all(color: const Color(0xFFE7DFFF)),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF7C4DFF).withValues(alpha: 0.07),
@@ -433,9 +400,7 @@ $playStoreLink
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border(
-            top: BorderSide(
-              color: Colors.black.withValues(alpha: 0.06),
-            ),
+            top: BorderSide(color: Colors.black.withValues(alpha: 0.06)),
           ),
           boxShadow: [
             BoxShadow(
@@ -458,10 +423,7 @@ $playStoreLink
                 borderRadius: BorderRadius.circular(18),
               ),
             ),
-            icon: const Icon(
-              Icons.copy_rounded,
-              size: 21,
-            ),
+            icon: const Icon(Icons.copy_rounded, size: 21),
             label: Text(
               'Copy Prompt',
               style: GoogleFonts.poppins(

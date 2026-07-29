@@ -41,52 +41,28 @@ class _SplashScreenState extends State<SplashScreen>
 
     _fadeAnimation = CurvedAnimation(
       parent: _entryController,
-      curve: const Interval(
-        0.0,
-        0.75,
-        curve: Curves.easeOut,
-      ),
+      curve: const Interval(0.0, 0.75, curve: Curves.easeOut),
     );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.72,
-      end: 1,
-    ).animate(
-      CurvedAnimation(
-        parent: _entryController,
-        curve: Curves.elasticOut,
-      ),
+    _scaleAnimation = Tween<double>(begin: 0.72, end: 1).animate(
+      CurvedAnimation(parent: _entryController, curve: Curves.elasticOut),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.30),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _entryController,
-        curve: const Interval(
-          0.20,
-          1,
-          curve: Curves.easeOutCubic,
-        ),
-      ),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.30), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _entryController,
+            curve: const Interval(0.20, 1, curve: Curves.easeOutCubic),
+          ),
+        );
 
-    _pulseAnimation = Tween<double>(
-      begin: 0.97,
-      end: 1.04,
-    ).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
-      ),
+    _pulseAnimation = Tween<double>(begin: 0.97, end: 1.04).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
     _entryController.forward();
 
-    _pulseController.repeat(
-      reverse: true,
-    );
+    _pulseController.repeat(reverse: true);
 
     _navigationTimer = Timer(
       const Duration(milliseconds: 2500),
@@ -99,27 +75,13 @@ class _SplashScreenState extends State<SplashScreen>
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
-        pageBuilder: (
-          context,
-          animation,
-          secondaryAnimation,
-        ) {
+        pageBuilder: (context, animation, secondaryAnimation) {
           return const MainScreen();
         },
-        transitionDuration: const Duration(
-          milliseconds: 650,
-        ),
-        transitionsBuilder: (
-          context,
-          animation,
-          secondaryAnimation,
-          child,
-        ) {
+        transitionDuration: const Duration(milliseconds: 650),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
-            opacity: CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOut,
-            ),
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
             child: child,
           );
         },
@@ -219,9 +181,7 @@ class _SplashScreenState extends State<SplashScreen>
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.3,
-                    color: AppColors.textSecondary.withValues(
-                      alpha: 0.72,
-                    ),
+                    color: AppColors.textSecondary.withValues(alpha: 0.72),
                   ),
                 ),
               ),
@@ -319,9 +279,7 @@ class _SplashBackgroundDecoration extends StatelessWidget {
             height: 260,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFFFB69B).withValues(
-                alpha: 0.10,
-              ),
+              color: const Color(0xFFFFB69B).withValues(alpha: 0.10),
             ),
           ),
         ),

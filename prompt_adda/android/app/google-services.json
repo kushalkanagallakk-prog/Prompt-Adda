@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "410369849677",
+    "project_id": "prompt-adda",
+    "storage_bucket": "prompt-adda.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:410369849677:android:4e794e1214051ec010df04",
+        "android_client_info": {
+          "package_name": "com.example.prompt_adda"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAsrJVCQP2f1ODDqpbc5ki3GqyxahMC6Yc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
