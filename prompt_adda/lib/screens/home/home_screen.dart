@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/theme/app_colors.dart';
-import '../../data/dummy_prompts.dart';
+import '../../services/prompt_service.dart';
 import '../../models/prompt_model.dart';
 import '../../services/favorites_service.dart';
 import '../prompt/prompt_details_screen.dart';
@@ -32,14 +32,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final prompts = dummyPrompts.where((prompt) {
-      final query = _searchQuery.trim().toLowerCase();
-
-      return prompt.title.toLowerCase().contains(query) ||
-          prompt.category.toLowerCase().contains(query) ||
-          prompt.description.toLowerCase().contains(query) ||
-          prompt.tags.any((tag) => tag.toLowerCase().contains(query));
-    }).toList();
+    final prompts = _searchQuery.trim().isEmpty
+        ? PromptService.getTrending()
+        : PromptService.search(_searchQuery);
 
     final isSearching = _searchQuery.trim().isNotEmpty;
 
@@ -78,8 +73,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 26),
 
-                    if (!isSearching && dummyPrompts.isNotEmpty) ...[
-                      HeroCarousel(prompts: dummyPrompts.take(4).toList()),
+                    if (!isSearching && PromptService.getAll().isNotEmpty) ...[
+                      HeroCarousel(
+                        prompts: PromptService.getTrending(limit: 4),
+                      ),
                       const SizedBox(height: 30),
                       _SectionHeader(
                         title: 'Categories',
@@ -387,7 +384,7 @@ class _CategoriesGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final categoryNames = <String>[];
 
-    for (final prompt in dummyPrompts) {
+    for (final prompt in PromptService.getAll()) {
       if (!categoryNames.contains(prompt.category)) {
         categoryNames.add(prompt.category);
       }
@@ -406,7 +403,7 @@ class _CategoriesGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final category = categoryNames[index];
 
-        final categoryPrompts = dummyPrompts
+        final categoryPrompts = PromptService.getAll()
             .where((prompt) => prompt.category == category)
             .toList();
 

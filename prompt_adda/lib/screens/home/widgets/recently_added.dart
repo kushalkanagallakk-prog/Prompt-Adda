@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../data/dummy_prompts.dart';
+import '../../../services/prompt_service.dart';
 import '../../../models/prompt_model.dart';
 import '../../prompt/prompt_details_screen.dart';
 
@@ -9,7 +9,7 @@ class RecentlyAdded extends StatelessWidget {
   const RecentlyAdded({super.key});
 
   List<PromptModel> get _recentPrompts {
-    return dummyPrompts.reversed.take(5).toList();
+    return PromptService.getRecent(limit: 5);
   }
 
   void _openPrompt(BuildContext context, PromptModel prompt) {
