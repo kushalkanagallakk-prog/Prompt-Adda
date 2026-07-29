@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../data/dummy_prompts.dart';
+import '../../services/prompt_service.dart';
 import '../../models/prompt_model.dart';
 import '../../services/favorites_service.dart';
 import '../prompt/prompt_details_screen.dart';
@@ -15,7 +15,6 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
-
   List<PromptModel> _favoritePrompts = [];
   bool _isLoading = true;
 
@@ -28,7 +27,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Future<void> _loadFavorites() async {
     final favoriteIds = await FavoritesService.getFavoriteIds();
 
-    final favorites = dummyPrompts.where((prompt) {
+    final favorites = PromptService.getAll().where((prompt) {
       return favoriteIds.contains(prompt.id);
     }).toList();
 
@@ -44,9 +43,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PromptDetailsScreen(
-          prompt: prompt,
-        ),
+        builder: (context) => PromptDetailsScreen(prompt: prompt),
       ),
     );
 
@@ -119,9 +116,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 class _FavoritesHeader extends StatelessWidget {
   final int favoritesCount;
 
-  const _FavoritesHeader({
-    required this.favoritesCount,
-  });
+  const _FavoritesHeader({required this.favoritesCount});
 
   @override
   Widget build(BuildContext context) {
@@ -182,10 +177,7 @@ class _FavoritePromptCard extends StatelessWidget {
   final PromptModel prompt;
   final VoidCallback onTap;
 
-  const _FavoritePromptCard({
-    required this.prompt,
-    required this.onTap,
-  });
+  const _FavoritePromptCard({required this.prompt, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -199,9 +191,7 @@ class _FavoritePromptCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.78),
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.92),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.92)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
@@ -219,11 +209,7 @@ class _FavoritePromptCard extends StatelessWidget {
                   color: AppColors.primary.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(
-                  prompt.icon,
-                  color: AppColors.primary,
-                  size: 25,
-                ),
+                child: Icon(prompt.icon, color: AppColors.primary, size: 25),
               ),
               const SizedBox(width: 15),
               Expanded(
@@ -291,16 +277,11 @@ class _EmptyFavorites extends StatelessWidget {
       child: Center(
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 28,
-            vertical: 38,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 38),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.74),
             borderRadius: BorderRadius.circular(26),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.92),
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.92)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
