@@ -9,6 +9,8 @@ import '../../services/favorites_service.dart';
 import '../prompt/prompt_details_screen.dart';
 import 'widgets/hero_carousel.dart';
 import '../categories/category_prompts_screen.dart';
+import 'widgets/featured_collections.dart';
+import 'widgets/recently_added.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -86,6 +88,24 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 16),
                       const _CategoriesGrid(),
+                      const SizedBox(height: 30),
+
+                      _SectionHeader(
+                        title: 'Featured Collections',
+                        actionText: 'Explore',
+                        onTap: () {},
+                      ),
+                      const SizedBox(height: 16),
+                      const FeaturedCollections(),
+                      const SizedBox(height: 30),
+
+                      _SectionHeader(
+                        title: 'Recently Added',
+                        actionText: 'View all',
+                        onTap: () {},
+                      ),
+                      const SizedBox(height: 16),
+                      const RecentlyAdded(),
                       const SizedBox(height: 30),
                     ],
 
