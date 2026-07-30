@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../favorites/favorites_screen.dart';
 import '../../core/theme/app_colors.dart';
 import '../home/home_screen.dart';
+import '../trending/trending_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -16,11 +17,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = const [
     HomeScreen(),
-    _PlaceholderScreen(
-      icon: Icons.local_fire_department_rounded,
-      title: 'Trending',
-      subtitle: 'Popular prompts will appear here.',
-    ),
+    TrendingScreen(),
     FavoritesScreen(),
     _PlaceholderScreen(
       icon: Icons.person_rounded,

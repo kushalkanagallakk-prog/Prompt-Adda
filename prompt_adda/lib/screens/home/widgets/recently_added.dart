@@ -1,15 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../services/prompt_service.dart';
 import '../../../models/prompt_model.dart';
+import '../../../services/prompt_service.dart';
 import '../../prompt/prompt_details_screen.dart';
 
-class RecentlyAdded extends StatelessWidget {
+class RecentlyAdded extends StatefulWidget {
   const RecentlyAdded({super.key});
 
-  List<PromptModel> get _recentPrompts {
-    return PromptService.getRecent(limit: 5);
+  @override
+  State<RecentlyAdded> createState() => _RecentlyAddedState();
+}
+
+class _RecentlyAddedState extends State<RecentlyAdded> {
+  late Future<List<PromptModel>> _recentPromptsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentPrompts();
+  }
+
+  void _loadRecentPrompts() {
+    _recentPromptsFuture = PromptService.fetchRecent();
   }
 
   void _openPrompt(BuildContext context, PromptModel prompt) {
@@ -21,34 +34,63 @@ class RecentlyAdded extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final prompts = _recentPrompts;
-
-    if (prompts.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return SizedBox(
-      height: 182,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(right: 4),
-        itemCount: prompts.length,
-        separatorBuilder: (context, index) {
-          return const SizedBox(width: 14);
-        },
-        itemBuilder: (context, index) {
-          final prompt = prompts[index];
-
-          return _RecentPromptCard(
-            prompt: prompt,
-            index: index,
-            onTap: () {
-              _openPrompt(context, prompt);
-            },
+    return FutureBuilder<List<PromptModel>>(
+      future: _recentPromptsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 182,
+            child: Center(child: CircularProgressIndicator()),
           );
-        },
-      ),
+        }
+
+        if (snapshot.hasError) {
+          return SizedBox(
+            height: 182,
+            child: Center(
+              child: TextButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _loadRecentPrompts();
+                  });
+                },
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Retry'),
+              ),
+            ),
+          );
+        }
+
+        final prompts = (snapshot.data ?? <PromptModel>[]).take(5).toList();
+
+        if (prompts.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return SizedBox(
+          height: 182,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(right: 4),
+            itemCount: prompts.length,
+            separatorBuilder: (context, index) {
+              return const SizedBox(width: 14);
+            },
+            itemBuilder: (context, index) {
+              final prompt = prompts[index];
+
+              return _RecentPromptCard(
+                prompt: prompt,
+                index: index,
+                onTap: () {
+                  _openPrompt(context, prompt);
+                },
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

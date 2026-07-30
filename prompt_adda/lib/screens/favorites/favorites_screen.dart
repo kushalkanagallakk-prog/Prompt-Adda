@@ -21,13 +21,31 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   void initState() {
     super.initState();
-    _loadFavorites();
+
+    FavoritesService.initialize().then((_) {
+      _loadFavorites();
+
+      FavoritesService.favoriteIdsNotifier.addListener(_loadFavorites);
+    });
+  }
+
+  @override
+  void dispose() {
+    FavoritesService.favoriteIdsNotifier.removeListener(_loadFavorites);
+    super.dispose();
   }
 
   Future<void> _loadFavorites() async {
-    final favoriteIds = await FavoritesService.getFavoriteIds();
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
-    final favorites = PromptService.getAll().where((prompt) {
+    final favoriteIds = await FavoritesService.getFavoriteIds();
+    final allPrompts = await PromptService.fetchAll();
+
+    final favorites = allPrompts.where((prompt) {
       return favoriteIds.contains(prompt.id);
     }).toList();
 
