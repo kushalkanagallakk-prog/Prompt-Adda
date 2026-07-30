@@ -6,6 +6,7 @@ import '../../services/favorites_service.dart';
 import '../../core/theme/app_colors.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -38,6 +39,49 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  Future<void> _contactUs() async {
+    const email = 'promptadda.app@gmail.com';
+
+    await Clipboard.setData(const ClipboardData(text: email));
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Email copied to clipboard'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    final uri = Uri(
+      scheme: 'mailto',
+      path: email,
+      queryParameters: {'subject': 'Prompt Adda Support'},
+    );
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
+
+  void _openPrivacyPolicy() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const _PrivacyPolicyScreen()),
+    );
+  }
+
+  void _openAbout() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return const _AboutPromptAddaSheet();
+      },
+    );
   }
 
   @override
@@ -114,7 +158,13 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
                   ),
                 ),
                 const SizedBox(height: 14),
-                _SettingsCard(onShareApp: _shareApp, onRateApp: _rateApp),
+                _SettingsCard(
+                  onShareApp: _shareApp,
+                  onRateApp: _rateApp,
+                  onPrivacyPolicy: _openPrivacyPolicy,
+                  onContactUs: _contactUs,
+                  onAbout: _openAbout,
+                ),
                 const SizedBox(height: 28),
                 Center(
                   child: Column(
@@ -272,10 +322,19 @@ class _StatCard extends StatelessWidget {
 }
 
 class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({required this.onShareApp, required this.onRateApp});
+  const _SettingsCard({
+    required this.onShareApp,
+    required this.onRateApp,
+    required this.onPrivacyPolicy,
+    required this.onContactUs,
+    required this.onAbout,
+  });
 
   final VoidCallback onShareApp;
   final VoidCallback onRateApp;
+  final VoidCallback onPrivacyPolicy;
+  final VoidCallback onContactUs;
+  final VoidCallback onAbout;
 
   @override
   Widget build(BuildContext context) {
@@ -299,16 +358,22 @@ class _SettingsCard extends StatelessWidget {
             onTap: onRateApp,
           ),
           const _SettingsDivider(),
-          const _SettingsTile(
+          _SettingsTile(
             icon: Icons.privacy_tip_rounded,
             title: 'Privacy Policy',
+            onTap: onPrivacyPolicy,
           ),
           const _SettingsDivider(),
-          const _SettingsTile(icon: Icons.mail_rounded, title: 'Contact Us'),
+          _SettingsTile(
+            icon: Icons.mail_rounded,
+            title: 'Contact Us',
+            onTap: onContactUs,
+          ),
           const _SettingsDivider(),
-          const _SettingsTile(
+          _SettingsTile(
             icon: Icons.info_rounded,
             title: 'About Prompt Adda',
+            onTap: onAbout,
           ),
         ],
       ),
@@ -363,6 +428,271 @@ class _SettingsDivider extends StatelessWidget {
       child: Divider(
         height: 1,
         color: AppColors.textSecondary.withValues(alpha: 0.10),
+      ),
+    );
+  }
+}
+
+class _PrivacyPolicyScreen extends StatelessWidget {
+  const _PrivacyPolicyScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.appBackgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 20, 10),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Privacy Policy',
+                      style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
+                  child: Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _PolicySection(
+                          title: 'Introduction',
+                          content:
+                              'Prompt Adda provides curated AI prompts for educational, creative, and productivity purposes. This policy explains how the app handles user information.',
+                        ),
+                        _PolicySection(
+                          title: 'Information We Collect',
+                          content:
+                              'Prompt Adda does not directly collect personal information such as your name, phone number, address, or passwords. Favorites and app preferences may be stored locally on your device.',
+                        ),
+                        _PolicySection(
+                          title: 'Firebase Services',
+                          content:
+                              'The app uses Firebase Firestore to load prompt content. Firebase may process limited technical information required to deliver the service securely and reliably.',
+                        ),
+                        _PolicySection(
+                          title: 'Third-Party Services',
+                          content:
+                              'The app may use third-party services such as Firebase, Google Play services, analytics, or advertising services in future versions. These services may operate under their own privacy policies.',
+                        ),
+                        _PolicySection(
+                          title: 'Data Security',
+                          content:
+                              'Reasonable technical measures are used to protect app content and related services. However, no internet-based service can guarantee complete security.',
+                        ),
+                        _PolicySection(
+                          title: 'Children’s Privacy',
+                          content:
+                              'Prompt Adda is not intended to knowingly collect personal data from children. Parents or guardians may contact us regarding any concerns.',
+                        ),
+                        _PolicySection(
+                          title: 'Policy Updates',
+                          content:
+                              'This privacy policy may be updated when app features or third-party services change. The latest version will be available inside the app.',
+                        ),
+                        const _PolicySection(
+                          title: 'Contact',
+                          content:
+                              'For privacy-related questions, contact us at promptadda.app@gmail.com.',
+                          showDivider: false,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PolicySection extends StatelessWidget {
+  const _PolicySection({
+    required this.title,
+    required this.content,
+    this.showDivider = true,
+  });
+
+  final String title;
+  final String content;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.poppins(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          content,
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            height: 1.65,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        if (showDivider) ...[
+          const SizedBox(height: 18),
+          Divider(color: AppColors.textSecondary.withValues(alpha: 0.12)),
+          const SizedBox(height: 18),
+        ],
+      ],
+    );
+  }
+}
+
+class _AboutPromptAddaSheet extends StatelessWidget {
+  const _AboutPromptAddaSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 14, 24, 28),
+        decoration: const BoxDecoration(
+          color: Color(0xFFF9F7FF),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.textSecondary.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                size: 38,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Prompt Adda',
+              style: GoogleFonts.poppins(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Version 0.6.0',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Discover powerful AI prompts for creativity, productivity, coding, social media, design, writing, and more.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13.5,
+                height: 1.6,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 22),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.78),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.divider),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Made with ❤️',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    '© 2026 Prompt Adda',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  'Close',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
