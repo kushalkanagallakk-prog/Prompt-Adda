@@ -30,14 +30,16 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  void _clearSearch() {
+    _searchController.clear();
+
+    setState(() {
+      _searchQuery = '';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final prompts = _searchQuery.trim().isEmpty
-        ? PromptService.getTrending()
-        : PromptService.search(_searchQuery);
-
-    final isSearching = _searchQuery.trim().isNotEmpty;
-
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -47,89 +49,178 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const _BackgroundBlobs(),
             SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 125),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _TopHeader(),
-                    const SizedBox(height: 26),
+              child: StreamBuilder<List<PromptModel>>(
+                stream: PromptService.watchAll(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      !snapshot.hasData) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    );
+                  }
 
-                    _SearchBar(
-                      controller: _searchController,
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
-                      onClear: () {
-                        _searchController.clear();
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.cloud_off_rounded,
+                              size: 48,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Unable to load prompts',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Check your internet connection and try again.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
 
-                        setState(() {
-                          _searchQuery = '';
-                        });
-                      },
+                  final allPrompts = snapshot.data ?? <PromptModel>[];
+
+                  final cleanQuery = _searchQuery.trim().toLowerCase();
+                  final isSearching = cleanQuery.isNotEmpty;
+
+                  final searchResults = allPrompts.where((prompt) {
+                    final matchesTitle = prompt.title.toLowerCase().contains(
+                      cleanQuery,
+                    );
+
+                    final matchesCategory = prompt.category
+                        .toLowerCase()
+                        .contains(cleanQuery);
+
+                    final matchesDescription = prompt.description
+                        .toLowerCase()
+                        .contains(cleanQuery);
+
+                    final matchesPrompt = prompt.prompt.toLowerCase().contains(
+                      cleanQuery,
+                    );
+
+                    final matchesTags = prompt.tags.any(
+                      (tag) => tag.toLowerCase().contains(cleanQuery),
+                    );
+
+                    return matchesTitle ||
+                        matchesCategory ||
+                        matchesDescription ||
+                        matchesPrompt ||
+                        matchesTags;
+                  }).toList();
+
+                  final trendingPrompts = allPrompts
+                      .where((prompt) => prompt.isTrending)
+                      .toList();
+
+                  final featuredPrompts = allPrompts
+                      .where((prompt) => prompt.isFeatured)
+                      .take(4)
+                      .toList();
+
+                  final displayedPrompts = isSearching
+                      ? searchResults
+                      : trendingPrompts;
+
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 125),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _TopHeader(),
+                        const SizedBox(height: 26),
+
+                        _SearchBar(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                            });
+                          },
+                          onClear: _clearSearch,
+                        ),
+
+                        const SizedBox(height: 26),
+
+                        if (!isSearching && allPrompts.isNotEmpty) ...[
+                          if (featuredPrompts.isNotEmpty) ...[
+                            HeroCarousel(prompts: featuredPrompts),
+                            const SizedBox(height: 30),
+                          ],
+
+                          _SectionHeader(
+                            title: 'Categories',
+                            actionText: 'See all',
+                            onTap: () {},
+                          ),
+                          const SizedBox(height: 16),
+
+                          _CategoriesGrid(prompts: allPrompts),
+
+                          const SizedBox(height: 30),
+
+                          _SectionHeader(
+                            title: 'Featured Collections',
+                            actionText: 'Explore',
+                            onTap: () {},
+                          ),
+                          const SizedBox(height: 16),
+                          const FeaturedCollections(),
+                          const SizedBox(height: 30),
+
+                          _SectionHeader(
+                            title: 'Recently Added',
+                            actionText: 'View all',
+                            onTap: () {},
+                          ),
+                          const SizedBox(height: 16),
+                          const RecentlyAdded(),
+                          const SizedBox(height: 30),
+                        ],
+
+                        _SectionHeader(
+                          title: isSearching
+                              ? 'Search Results (${displayedPrompts.length})'
+                              : 'Trending Prompts',
+                          actionText: isSearching ? 'Clear' : 'View all',
+                          onTap: () {
+                            if (isSearching) {
+                              _clearSearch();
+                            }
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        if (displayedPrompts.isEmpty)
+                          const _EmptySearchResult()
+                        else
+                          _TrendingList(prompts: displayedPrompts),
+                      ],
                     ),
-
-                    const SizedBox(height: 26),
-
-                    if (!isSearching && PromptService.getAll().isNotEmpty) ...[
-                      HeroCarousel(
-                        prompts: PromptService.getTrending(limit: 4),
-                      ),
-                      const SizedBox(height: 30),
-                      _SectionHeader(
-                        title: 'Categories',
-                        actionText: 'See all',
-                        onTap: () {},
-                      ),
-                      const SizedBox(height: 16),
-                      const _CategoriesGrid(),
-                      const SizedBox(height: 30),
-
-                      _SectionHeader(
-                        title: 'Featured Collections',
-                        actionText: 'Explore',
-                        onTap: () {},
-                      ),
-                      const SizedBox(height: 16),
-                      const FeaturedCollections(),
-                      const SizedBox(height: 30),
-
-                      _SectionHeader(
-                        title: 'Recently Added',
-                        actionText: 'View all',
-                        onTap: () {},
-                      ),
-                      const SizedBox(height: 16),
-                      const RecentlyAdded(),
-                      const SizedBox(height: 30),
-                    ],
-
-                    _SectionHeader(
-                      title: isSearching
-                          ? 'Search Results (${prompts.length})'
-                          : 'Trending Prompts',
-                      actionText: isSearching ? 'Clear' : 'View all',
-                      onTap: () {
-                        if (isSearching) {
-                          _searchController.clear();
-
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        }
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    if (prompts.isEmpty)
-                      const _EmptySearchResult()
-                    else
-                      _TrendingList(prompts: prompts),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ],
@@ -326,7 +417,9 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _CategoriesGrid extends StatelessWidget {
-  const _CategoriesGrid();
+  const _CategoriesGrid({required this.prompts});
+
+  final List<PromptModel> prompts;
 
   static const List<List<Color>> _categoryGradients = [
     [Color(0xFF5B36C9), Color(0xFF8E5CE6)],

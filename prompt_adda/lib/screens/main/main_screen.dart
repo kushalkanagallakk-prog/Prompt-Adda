@@ -4,6 +4,7 @@ import '../favorites/favorites_screen.dart';
 import '../../core/theme/app_colors.dart';
 import '../home/home_screen.dart';
 import '../trending/trending_screen.dart';
+import '../profile/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -16,15 +17,11 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = const [
-    HomeScreen(),
-    TrendingScreen(),
-    FavoritesScreen(),
-    _PlaceholderScreen(
-      icon: Icons.person_rounded,
-      title: 'Profile',
-      subtitle: 'Manage your preferences and settings.',
-    ),
-  ];
+  HomeScreen(),
+  TrendingScreen(),
+  FavoritesScreen(),
+  ProfileScreen(),
+];
   void _changeTab(int index) {
     if (_selectedIndex == index) return;
 
@@ -209,72 +206,4 @@ class _NavigationItem {
   final String label;
   final IconData icon;
   final IconData selectedIcon;
-}
-
-class _PlaceholderScreen extends StatelessWidget {
-  const _PlaceholderScreen({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: AppColors.appBackgroundGradient,
-      ),
-      child: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(27),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x307547D8),
-                        blurRadius: 28,
-                        offset: Offset(0, 14),
-                      ),
-                    ],
-                  ),
-                  child: Icon(icon, size: 38, color: Colors.white),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  title,
-                  style: GoogleFonts.poppins(
-                    fontSize: 27,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  subtitle,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    height: 1.5,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
