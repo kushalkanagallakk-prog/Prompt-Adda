@@ -1,10 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import '../../models/prompt_model.dart';
+import '../../services/prompt_service.dart';
+import '../../services/favorites_service.dart';
 import '../../core/theme/app_colors.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  Future<void> _shareApp() async {
+    await SharePlus.instance.share(
+      ShareParams(
+        text: '''
+🚀 Check out Prompt Adda!
+
+Discover powerful AI prompts for ChatGPT, Gemini, Claude and more.
+
+Download:
+https://play.google.com/store/apps/details?id=com.example.prompt_adda
+''',
+      ),
+    );
+  }
+
+  Future<void> _rateApp() async {
+    final uri = Uri.parse(
+      'https://play.google.com/store/apps/details?id=com.example.prompt_adda',
+    );
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,24 +73,36 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.auto_awesome_rounded,
-                        title: '0',
-                        subtitle: 'Total Prompts',
-                      ),
-                    ),
-                    SizedBox(width: 14),
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.favorite_rounded,
-                        title: '0',
-                        subtitle: 'Favorites',
-                      ),
-                    ),
-                  ],
+                StreamBuilder<List<PromptModel>>(
+                  stream: PromptService.watchAll(),
+                  builder: (context, snapshot) {
+                    final totalPrompts = snapshot.data?.length ?? 0;
+
+                    return ValueListenableBuilder<Set<String>>(
+                      valueListenable: FavoritesService.favoriteIdsNotifier,
+                      builder: (context, favoriteIds, child) {
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _StatCard(
+                                icon: Icons.auto_awesome_rounded,
+                                title: totalPrompts.toString(),
+                                subtitle: 'Total Prompts',
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: _StatCard(
+                                icon: Icons.favorite_rounded,
+                                title: favoriteIds.length.toString(),
+                                subtitle: 'Favorites',
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
                 ),
                 const SizedBox(height: 28),
                 Text(
@@ -68,7 +114,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                const _SettingsCard(),
+                _SettingsCard(onShareApp: _shareApp, onRateApp: _rateApp),
                 const SizedBox(height: 28),
                 Center(
                   child: Column(
@@ -199,11 +245,7 @@ class _StatCard extends StatelessWidget {
               color: AppColors.primarySoft,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(
-              icon,
-              color: AppColors.primary,
-              size: 22,
-            ),
+            child: Icon(icon, color: AppColors.primary, size: 22),
           ),
           const SizedBox(height: 12),
           Text(
@@ -230,7 +272,10 @@ class _StatCard extends StatelessWidget {
 }
 
 class _SettingsCard extends StatelessWidget {
-  const _SettingsCard();
+  const _SettingsCard({required this.onShareApp, required this.onRateApp});
+
+  final VoidCallback onShareApp;
+  final VoidCallback onRateApp;
 
   @override
   Widget build(BuildContext context) {
@@ -241,28 +286,27 @@ class _SettingsCard extends StatelessWidget {
         border: Border.all(color: AppColors.divider),
       ),
       child: Column(
-        children: const [
+        children: [
           _SettingsTile(
             icon: Icons.share_rounded,
             title: 'Share App',
+            onTap: onShareApp,
           ),
-          _SettingsDivider(),
+          const _SettingsDivider(),
           _SettingsTile(
             icon: Icons.star_rounded,
             title: 'Rate App',
+            onTap: onRateApp,
           ),
-          _SettingsDivider(),
-          _SettingsTile(
+          const _SettingsDivider(),
+          const _SettingsTile(
             icon: Icons.privacy_tip_rounded,
             title: 'Privacy Policy',
           ),
-          _SettingsDivider(),
-          _SettingsTile(
-            icon: Icons.mail_rounded,
-            title: 'Contact Us',
-          ),
-          _SettingsDivider(),
-          _SettingsTile(
+          const _SettingsDivider(),
+          const _SettingsTile(icon: Icons.mail_rounded, title: 'Contact Us'),
+          const _SettingsDivider(),
+          const _SettingsTile(
             icon: Icons.info_rounded,
             title: 'About Prompt Adda',
           ),
@@ -273,18 +317,16 @@ class _SettingsCard extends StatelessWidget {
 }
 
 class _SettingsTile extends StatelessWidget {
-  const _SettingsTile({
-    required this.icon,
-    required this.title,
-  });
+  const _SettingsTile({required this.icon, required this.title, this.onTap});
 
   final IconData icon;
   final String title;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap: () {},
+      onTap: onTap,
       leading: Container(
         width: 42,
         height: 42,
@@ -292,11 +334,7 @@ class _SettingsTile extends StatelessWidget {
           color: AppColors.primarySoft,
           borderRadius: BorderRadius.circular(13),
         ),
-        child: Icon(
-          icon,
-          color: AppColors.primary,
-          size: 21,
-        ),
+        child: Icon(icon, color: AppColors.primary, size: 21),
       ),
       title: Text(
         title,
