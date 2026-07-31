@@ -41,29 +41,15 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
     }
   }
 
-  Future<void> _contactUs() async {
-    const email = 'promptadda.app@gmail.com';
-
-    await Clipboard.setData(const ClipboardData(text: email));
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Email copied to clipboard'),
-        duration: Duration(seconds: 2),
-      ),
+  void _contactUs() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return const _ContactUsSheet();
+      },
     );
-
-    final uri = Uri(
-      scheme: 'mailto',
-      path: email,
-      queryParameters: {'subject': 'Prompt Adda Support'},
-    );
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
   }
 
   void _openPrivacyPolicy() {
@@ -689,6 +675,206 @@ class _AboutPromptAddaSheet extends StatelessWidget {
                   'Close',
                   style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ContactUsSheet extends StatelessWidget {
+  const _ContactUsSheet();
+
+  static const String _email = 'promptadda.app@gmail.com';
+  static const String _instagramUrl = 'https://www.instagram.com/prompt__adda/';
+
+  Future<void> _copyEmail(BuildContext context) async {
+    await Clipboard.setData(const ClipboardData(text: _email));
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Email copied to clipboard'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _openGmail(BuildContext context) async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: _email,
+      queryParameters: {'subject': 'Prompt Adda Support'},
+    );
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No email app found')));
+    }
+  }
+
+  Future<void> _openInstagram(BuildContext context) async {
+    final uri = Uri.parse(_instagramUrl);
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Unable to open Instagram')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 14, 24, 28),
+        decoration: const BoxDecoration(
+          color: Color(0xFFF9F7FF),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.textSecondary.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.support_agent_rounded,
+                size: 38,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Contact Us',
+              style: GoogleFonts.poppins(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'We are happy to help you',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 22),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.82),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.divider),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.mail_rounded, color: AppColors.primary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _email,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.camera_alt_rounded,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '@prompt__adda',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _copyEmail(context),
+                icon: const Icon(Icons.copy_rounded),
+                label: Text(
+                  'Copy Email',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => _openGmail(context),
+                icon: const Icon(Icons.mail_outline_rounded),
+                label: Text(
+                  'Open Gmail',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _openInstagram(context),
+                icon: const Icon(Icons.camera_alt_rounded),
+                label: Text(
+                  'Open Instagram',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Close',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
               ),
             ),
           ],
