@@ -11,6 +11,8 @@ import 'widgets/hero_carousel.dart';
 import '../categories/category_prompts_screen.dart';
 import 'widgets/featured_collections.dart';
 import 'widgets/recently_added.dart';
+import '../../widgets/premium_badge.dart';
+import '../../widgets/premium_prompt_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -700,6 +702,11 @@ class _PremiumPromptCard extends StatelessWidget {
   }
 
   void _openPrompt(BuildContext context) {
+    if (prompt.isPremium) {
+      showPremiumPromptDialog(context);
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => PromptDetailsScreen(prompt: prompt)),
@@ -822,6 +829,10 @@ Shared from Prompt Adda
                                 ),
                               ),
                             ),
+                            if (prompt.isPremium) ...[
+                              const SizedBox(width: 8),
+                              const PremiumBadge(),
+                            ],
                             const SizedBox(width: 12),
                             Container(
                               width: 38,

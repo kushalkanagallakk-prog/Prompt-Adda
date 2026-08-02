@@ -6,6 +6,8 @@ import '../../services/prompt_service.dart';
 import '../../models/prompt_model.dart';
 import '../../services/favorites_service.dart';
 import '../prompt/prompt_details_screen.dart';
+import '../../widgets/premium_badge.dart';
+import '../../widgets/premium_prompt_dialog.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -58,6 +60,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Future<void> _openPromptDetails(PromptModel prompt) async {
+    if (prompt.isPremium) {
+      showPremiumPromptDialog(context);
+      return;
+    }
+
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -246,16 +253,27 @@ class _FavoritePromptCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 5),
-                    Text(
-                      prompt.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                        fontSize: 15.5,
-                        height: 1.3,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            prompt.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 15.5,
+                              height: 1.3,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (prompt.isPremium) ...[
+                          const SizedBox(width: 8),
+                          const PremiumBadge(),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 6),
                     Text(

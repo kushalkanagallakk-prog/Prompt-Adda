@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../models/prompt_model.dart';
 import '../../prompt/prompt_details_screen.dart';
+import '../../../widgets/premium_badge.dart';
+import '../../../widgets/premium_prompt_dialog.dart';
 
 class HeroCarousel extends StatefulWidget {
   const HeroCarousel({super.key, required this.prompts});
@@ -84,6 +86,11 @@ class _HeroCarouselState extends State<HeroCarousel> {
   }
 
   void _openPrompt(PromptModel prompt) {
+    if (prompt.isPremium) {
+      showPremiumPromptDialog(context);
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => PromptDetailsScreen(prompt: prompt)),
@@ -297,7 +304,14 @@ class _HeroPromptCard extends StatelessWidget {
                         icon: Icons.auto_awesome_rounded,
                         label: prompt.category.toUpperCase(),
                       ),
+
+                      if (prompt.isPremium) ...[
+                        const SizedBox(width: 8),
+                        const PremiumBadge(label: 'PREMIUM'),
+                      ],
+
                       const Spacer(),
+
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 11,

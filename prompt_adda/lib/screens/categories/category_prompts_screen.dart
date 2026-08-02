@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/prompt_model.dart';
 import '../prompt/prompt_details_screen.dart';
+import '../../widgets/premium_badge.dart';
+import '../../widgets/premium_prompt_dialog.dart';
 
 class CategoryPromptsScreen extends StatelessWidget {
   const CategoryPromptsScreen({
@@ -20,6 +22,11 @@ class CategoryPromptsScreen extends StatelessWidget {
   final List<Color> gradient;
 
   void _openPrompt(BuildContext context, PromptModel prompt) {
+    if (prompt.isPremium) {
+      showPremiumPromptDialog(context);
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => PromptDetailsScreen(prompt: prompt)),
@@ -249,26 +256,26 @@ class _CategoryPromptCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      prompt.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      prompt.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                        fontSize: 11.5,
-                        height: 1.45,
-                        color: AppColors.textSecondary,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            prompt.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+
+                        if (prompt.isPremium) ...[
+                          const SizedBox(width: 8),
+                          const PremiumBadge(),
+                        ],
+                      ],
                     ),
                   ],
                 ),
