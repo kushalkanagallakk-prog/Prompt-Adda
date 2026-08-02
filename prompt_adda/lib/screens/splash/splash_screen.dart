@@ -222,31 +222,14 @@ class _LogoCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned(
-            top: 10,
-            right: 12,
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.16),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Text(
-            'PA',
-            style: GoogleFonts.poppins(
-              fontSize: 34,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -1.5,
-              color: Colors.white,
-            ),
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: Image.asset(
+          'assets/icons/prompt_adda_icon.png',
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }

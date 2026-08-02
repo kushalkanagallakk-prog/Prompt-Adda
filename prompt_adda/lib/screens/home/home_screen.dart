@@ -714,11 +714,14 @@ class _PremiumPromptCard extends StatelessWidget {
   }
 
   Future<void> _copyPrompt(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: prompt.prompt));
-
-    if (!context.mounted) {
+    if (prompt.isPremium) {
+      showPremiumPromptDialog(context);
       return;
     }
+
+    await Clipboard.setData(ClipboardData(text: prompt.prompt));
+
+    if (!context.mounted) return;
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -753,7 +756,12 @@ class _PremiumPromptCard extends StatelessWidget {
       );
   }
 
-  Future<void> _sharePrompt() async {
+  Future<void> _sharePrompt(BuildContext context) async {
+    if (prompt.isPremium) {
+      showPremiumPromptDialog(context);
+      return;
+    }
+
     await SharePlus.instance.share(
       ShareParams(
         subject: prompt.title,
@@ -901,7 +909,7 @@ Shared from Prompt Adda
                           child: _PromptActionButton(
                             icon: Icons.ios_share_rounded,
                             label: 'Share',
-                            onTap: _sharePrompt,
+                            onTap: () => _sharePrompt(context),
                           ),
                         ),
                         const SizedBox(width: 9),
