@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../home/home_screen.dart';
 import '../trending/trending_screen.dart';
 import '../profile/profile_screen.dart';
+import '../categories/categories_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -17,11 +18,12 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = const [
-  HomeScreen(),
-  TrendingScreen(),
-  FavoritesScreen(),
-  ProfileScreen(),
-];
+    HomeScreen(),
+    CategoriesScreen(),
+    TrendingScreen(),
+    FavoritesScreen(),
+    ProfileScreen(),
+  ];
   void _changeTab(int index) {
     if (_selectedIndex == index) return;
 
@@ -57,11 +59,18 @@ class _PremiumBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     const items = [
       _NavigationItem(
         label: 'Home',
         icon: Icons.home_outlined,
         selectedIcon: Icons.home_rounded,
+      ),
+      _NavigationItem(
+        label: 'Categories',
+        icon: Icons.grid_view_outlined,
+        selectedIcon: Icons.grid_view_rounded,
       ),
       _NavigationItem(
         label: 'Trending',
@@ -82,24 +91,22 @@ class _PremiumBottomNavigation extends StatelessWidget {
 
     return Container(
       height: 74,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(26),
+        color: isDark
+            ? const Color(0xFF18151F)
+            : Colors.white.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.85),
-          width: 1.4,
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : const Color(0xFFF0EEF5),
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x1C4B249A),
-            blurRadius: 30,
-            offset: Offset(0, 14),
-          ),
-          BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
+            color: Colors.black.withValues(alpha: isDark ? 0.34 : 0.08),
+            blurRadius: 34,
+            offset: const Offset(0, 16),
           ),
         ],
       ),
@@ -134,6 +141,8 @@ class _NavigationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Semantics(
       button: true,
       selected: isSelected,
@@ -142,18 +151,24 @@ class _NavigationButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(19),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutQuart,
+          padding: EdgeInsets.symmetric(
+            horizontal: isSelected ? 5 : 3,
+            vertical: 8,
+          ),
           decoration: BoxDecoration(
             gradient: isSelected
-                ? const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Color(0xFFECDDFF), Color(0xFFFFEBE5)],
+                ? LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF4C2E76), const Color(0xFF36204E)]
+                        : [const Color(0xFFF0E4FF), const Color(0xFFFFF2EC)],
                   )
                 : null,
-            borderRadius: BorderRadius.circular(19),
+            borderRadius: BorderRadius.circular(18),
+            border: isSelected && isDark
+                ? Border.all(color: Colors.white.withValues(alpha: 0.05))
+                : null,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -161,26 +176,39 @@ class _NavigationButton extends StatelessWidget {
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
                 transitionBuilder: (child, animation) {
-                  return ScaleTransition(scale: animation, child: child);
+                  return FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(
+                        begin: 0.88,
+                        end: 1,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  );
                 },
                 child: Icon(
                   isSelected ? item.selectedIcon : item.icon,
                   key: ValueKey(isSelected),
-                  size: 23,
+                  size: isSelected ? 23 : 21,
                   color: isSelected
-                      ? AppColors.primary
-                      : AppColors.textSecondary,
+                      ? isDark
+                            ? const Color(0xFFD6BEFF)
+                            : AppColors.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 220),
                 style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 8.5,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   color: isSelected
-                      ? AppColors.primary
-                      : AppColors.textSecondary,
+                      ? isDark
+                            ? const Color(0xFFB78CFF)
+                            : AppColors.primary
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 child: Text(
                   item.label,

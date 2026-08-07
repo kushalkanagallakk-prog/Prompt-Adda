@@ -79,4 +79,79 @@ class AppTheme {
       ),
     );
   }
+
+  static ThemeData get darkTheme {
+    final baseTextTheme = GoogleFonts.poppinsTextTheme(
+      ThemeData.dark().textTheme,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: const ColorScheme.dark(
+        primary: AppColors.primary,
+        secondary: AppColors.primaryDark,
+        surface: AppColors.darkSurface,
+        surfaceContainerHighest: AppColors.darkSurfaceElevated,
+        error: AppColors.error,
+        onPrimary: Colors.white,
+        onSurface: AppColors.darkTextPrimary,
+        onSurfaceVariant: AppColors.darkTextSecondary,
+        outline: AppColors.darkDivider,
+      ),
+      scaffoldBackgroundColor: AppColors.darkBackground,
+      textTheme: baseTextTheme.copyWith(
+        headlineLarge: baseTextTheme.headlineLarge?.copyWith(
+          color: AppColors.darkTextPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+        titleLarge: baseTextTheme.titleLarge?.copyWith(
+          color: AppColors.darkTextPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+        bodyLarge: baseTextTheme.bodyLarge?.copyWith(
+          color: AppColors.darkTextPrimary,
+        ),
+        bodyMedium: baseTextTheme.bodyMedium?.copyWith(
+          color: AppColors.darkTextSecondary,
+        ),
+      ),
+      appBarTheme: AppBarTheme(
+        elevation: 0,
+        centerTitle: false,
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.darkTextPrimary,
+        titleTextStyle: GoogleFonts.poppins(
+          color: AppColors.darkTextPrimary,
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.darkSurface,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.darkSurfaceSoft,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide(
+            color: AppColors.primary.withValues(alpha: 0.65),
+            width: 1.2,
+          ),
+        ),
+      ),
+    );
+  }
 }

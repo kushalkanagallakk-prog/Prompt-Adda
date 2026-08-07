@@ -125,15 +125,24 @@ class _HeroCarouselState extends State<HeroCarousel> {
                 fontSize: 21,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.4,
-                color: const Color(0xFF241B35),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : const Color(0xFF241B35),
               ),
             ),
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFFF0E8FF),
-                borderRadius: BorderRadius.circular(30),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : const Color(0xFFF0E8FF),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.transparent,
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -159,7 +168,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 320,
+          height: 340,
           child: Listener(
             onPointerDown: (_) => _pauseAutoScroll(),
             onPointerUp: (_) => _restartAutoScroll(),
@@ -187,8 +196,8 @@ class _HeroCarouselState extends State<HeroCarousel> {
                     }
 
                     final distance = (pageValue - index).abs();
-                    final scale = (1 - (distance * 0.045)).clamp(0.94, 1.0);
-                    final verticalOffset = (distance * 10).clamp(0.0, 10.0);
+                    final scale = (1 - (distance * 0.035)).clamp(0.96, 1.0);
+                    final verticalOffset = (distance * 7).clamp(0.0, 7.0);
 
                     return Transform.translate(
                       offset: Offset(0, verticalOffset),
@@ -201,7 +210,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
                   },
                   child: Padding(
                     padding: EdgeInsets.only(
-                      right: index == widget.prompts.length - 1 ? 0 : 12,
+                      right: index == widget.prompts.length - 1 ? 0 : 10,
                     ),
                     child: _HeroPromptCard(
                       prompt: prompt,
@@ -216,7 +225,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
             ),
           ),
         ),
-        const SizedBox(height: 17),
+        const SizedBox(height: 14),
         _CarouselIndicator(
           count: widget.prompts.length,
           currentIndex: _currentPage,
@@ -247,35 +256,56 @@ class _HeroPromptCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(26),
         child: Ink(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(26),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF291F3B).withValues(alpha: 0.20),
-                blurRadius: 32,
+                color: Colors.black.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.34
+                      : 0.12,
+                ),
+                blurRadius: 34,
                 offset: const Offset(0, 18),
-              ),
-              BoxShadow(
-                color: const Color(0xFF7042D8).withValues(alpha: 0.08),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(26),
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return _FeaturedImageFallback(icon: prompt.icon);
-                  },
-                ),
+                if (prompt.coverImage != null)
+                  Image.network(
+                    prompt.coverImage!,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) {
+                        return child;
+                      }
+
+                      return _FeaturedImageFallback(icon: prompt.icon);
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _FeaturedImageFallback(icon: prompt.icon);
+                        },
+                      );
+                    },
+                  )
+                else
+                  Image.asset(
+                    imagePath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _FeaturedImageFallback(icon: prompt.icon);
+                    },
+                  ),
 
                 const DecoratedBox(
                   decoration: BoxDecoration(
@@ -284,11 +314,11 @@ class _HeroPromptCard extends StatelessWidget {
                       end: Alignment.bottomCenter,
                       stops: [0.0, 0.28, 0.58, 0.78, 1.0],
                       colors: [
-                        Color(0x12000000),
-                        Color(0x18000000),
-                        Color(0x66000000),
-                        Color(0xC9000000),
-                        Color(0xF5000000),
+                        Color(0x00000000),
+                        Color(0x02000000),
+                        Color(0x22000000),
+                        Color(0x52000000),
+                        Color(0x98000000),
                       ],
                     ),
                   ),
@@ -318,17 +348,26 @@ class _HeroPromptCard extends StatelessWidget {
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.26),
-                          borderRadius: BorderRadius.circular(30),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(32),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.22),
+                            color: Colors.white.withValues(alpha: 0.16),
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.18),
+                              blurRadius: 12,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
                         ),
                         child: Text(
                           '$position / $totalCount',
                           style: GoogleFonts.poppins(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
                         ),
@@ -336,104 +375,28 @@ class _HeroPromptCard extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 Positioned(
                   left: 22,
                   right: 22,
-                  bottom: 21,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        prompt.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          fontSize: 25,
-                          height: 1.14,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.6,
-                          color: Colors.white,
-                          shadows: const [
-                            Shadow(
-                              color: Color(0x88000000),
-                              blurRadius: 14,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
+                  bottom: 24,
+                  child: Text(
+                    prompt.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                      height: 1.08,
+                      color: Colors.white,
+                      shadows: const [
+                        Shadow(
+                          color: Color(0x88000000),
+                          blurRadius: 14,
+                          offset: Offset(0, 4),
                         ),
-                      ),
-                      const SizedBox(height: 9),
-                      Text(
-                        prompt.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12.5,
-                          height: 1.5,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white.withValues(alpha: 0.82),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 17,
-                              vertical: 11,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(30),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.18),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 7),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Explore Prompt',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF5F35C8),
-                                  ),
-                                ),
-                                const SizedBox(width: 7),
-                                const Icon(
-                                  Icons.arrow_forward_rounded,
-                                  size: 17,
-                                  color: Color(0xFF5F35C8),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Spacer(),
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.26),
-                              ),
-                            ),
-                            child: Icon(
-                              prompt.icon,
-                              color: Colors.white,
-                              size: 21,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -456,21 +419,27 @@ class _GlassBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.90),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.78)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(
+              alpha: Theme.of(context).brightness == Brightness.dark
+                  ? 0.24
+                  : 0.08,
+            ),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF7042D8)),
+          Icon(icon, size: 14, color: Colors.white),
           const SizedBox(width: 6),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 145),
@@ -482,7 +451,7 @@ class _GlassBadge extends StatelessWidget {
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.65,
-                color: const Color(0xFF5F35C8),
+                color: Colors.white,
               ),
             ),
           ),
@@ -506,11 +475,28 @@ class _CarouselIndicator extends StatelessWidget {
 
     return Center(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.72),
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: const Color(0xFFE8E0F3)),
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.62),
+          borderRadius: BorderRadius.circular(24),
+          border: Theme.of(context).brightness == Brightness.dark
+              ? null
+              : Border.all(
+                  color: const Color(0xFFE8E0F3).withValues(alpha: 0.70),
+                ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark
+                    ? 0.18
+                    : 0.035,
+              ),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -518,10 +504,10 @@ class _CarouselIndicator extends StatelessWidget {
             final isSelected = index == currentIndex;
 
             return AnimatedContainer(
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeOutCubic,
-              width: isSelected ? 25 : 7,
-              height: 7,
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutQuart,
+              width: isSelected ? 22 : 6,
+              height: 6,
               margin: const EdgeInsets.symmetric(horizontal: 3),
               decoration: BoxDecoration(
                 gradient: isSelected
@@ -529,7 +515,11 @@ class _CarouselIndicator extends StatelessWidget {
                         colors: [Color(0xFF7042D8), Color(0xFFA65DE2)],
                       )
                     : null,
-                color: isSelected ? null : const Color(0xFFD9D1E8),
+                color: isSelected
+                    ? null
+                    : Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withValues(alpha: 0.20)
+                    : const Color(0xFFD9D1E8),
                 borderRadius: BorderRadius.circular(20),
               ),
             );
@@ -613,7 +603,7 @@ class _FeaturedImageFallback extends StatelessWidget {
                 ),
                 child: Icon(
                   icon,
-                  size: 62,
+                  size: 64,
                   color: Colors.white.withValues(alpha: 0.32),
                 ),
               ),

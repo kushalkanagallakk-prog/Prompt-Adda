@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'prompt_service.dart';
 
 class FavoritesService {
   static const String _favoritesKey = 'favorite_prompt_ids';
@@ -37,19 +38,33 @@ class FavoritesService {
   static Future<void> addFavorite(String promptId) async {
     await initialize();
 
-    final updatedIds = Set<String>.from(favoriteIdsNotifier.value)
-      ..add(promptId);
+    final currentIds = Set<String>.from(favoriteIdsNotifier.value);
 
-    await _saveFavorites(updatedIds);
+    if (currentIds.contains(promptId)) {
+      return;
+    }
+
+    currentIds.add(promptId);
+
+    await _saveFavorites(currentIds);
+
+    await PromptService.incrementFavoriteCount(promptId, isAdding: true);
   }
 
   static Future<void> removeFavorite(String promptId) async {
     await initialize();
 
-    final updatedIds = Set<String>.from(favoriteIdsNotifier.value)
-      ..remove(promptId);
+    final currentIds = Set<String>.from(favoriteIdsNotifier.value);
 
-    await _saveFavorites(updatedIds);
+    if (!currentIds.contains(promptId)) {
+      return;
+    }
+
+    currentIds.remove(promptId);
+
+    await _saveFavorites(currentIds);
+
+    await PromptService.incrementFavoriteCount(promptId, isAdding: false);
   }
 
   static Future<bool> toggleFavorite(String promptId) async {
@@ -66,6 +81,11 @@ class FavoritesService {
     }
 
     await _saveFavorites(updatedIds);
+
+    await PromptService.incrementFavoriteCount(
+      promptId,
+      isAdding: isNowFavorite,
+    );
 
     return isNowFavorite;
   }

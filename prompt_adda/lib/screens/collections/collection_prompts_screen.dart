@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../models/prompt_collection.dart';
 import '../../models/prompt_model.dart';
 import '../prompt/prompt_details_screen.dart';
+import '../../widgets/prompt_card.dart';
 
 class CollectionPromptsScreen extends StatelessWidget {
   const CollectionPromptsScreen({
@@ -59,9 +60,10 @@ class CollectionPromptsScreen extends StatelessWidget {
                       itemBuilder: (context, index) {
                         final prompt = prompts[index];
 
-                        return _CollectionPromptCard(
+                        return PromptCard(
                           prompt: prompt,
-                          gradient: collection.gradient,
+                          footerLabel: collection.title,
+                          footerIcon: Icons.arrow_forward_rounded,
                           onTap: () {
                             _openPrompt(context, prompt);
                           },
@@ -208,105 +210,6 @@ class _CollectionHeader extends StatelessWidget {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CollectionPromptCard extends StatelessWidget {
-  const _CollectionPromptCard({
-    required this.prompt,
-    required this.gradient,
-    required this.onTap,
-  });
-
-  final PromptModel prompt;
-  final List<Color> gradient;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.93),
-      borderRadius: BorderRadius.circular(22),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF2B1F3D).withValues(alpha: 0.07),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 55,
-                height: 55,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: gradient,
-                  ),
-                  borderRadius: BorderRadius.circular(17),
-                ),
-                child: Icon(prompt.icon, color: Colors.white, size: 25),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      prompt.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      prompt.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                        fontSize: 11.5,
-                        height: 1.45,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      prompt.category,
-                      style: GoogleFonts.poppins(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w600,
-                        color: gradient.first,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 9),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 16,
-                color: gradient.first,
-              ),
-            ],
-          ),
         ),
       ),
     );

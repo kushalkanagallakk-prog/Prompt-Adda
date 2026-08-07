@@ -4,8 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/prompt_model.dart';
 import '../prompt/prompt_details_screen.dart';
-import '../../widgets/premium_badge.dart';
 import '../../widgets/premium_prompt_dialog.dart';
+import '../../widgets/prompt_card.dart';
 
 class CategoryPromptsScreen extends StatelessWidget {
   const CategoryPromptsScreen({
@@ -71,9 +71,11 @@ class CategoryPromptsScreen extends StatelessWidget {
                       itemBuilder: (context, index) {
                         final prompt = prompts[index];
 
-                        return _CategoryPromptCard(
+                        return PromptCard(
                           prompt: prompt,
                           gradient: gradient,
+                          footerLabel: prompt.category,
+                          footerIcon: Icons.arrow_forward_rounded,
                           onTap: () {
                             _openPrompt(context, prompt);
                           },
@@ -199,104 +201,6 @@ class _CategoryHeader extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _CategoryPromptCard extends StatelessWidget {
-  const _CategoryPromptCard({
-    required this.prompt,
-    required this.gradient,
-    required this.onTap,
-  });
-
-  final PromptModel prompt;
-  final List<Color> gradient;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.92),
-      borderRadius: BorderRadius.circular(22),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF2B1F3D).withValues(alpha: 0.07),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: gradient,
-                  ),
-                  borderRadius: BorderRadius.circular(17),
-                ),
-                child: Icon(prompt.icon, color: Colors.white, size: 25),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            prompt.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-
-                        if (prompt.isPremium) ...[
-                          const SizedBox(width: 8),
-                          const PremiumBadge(),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: gradient.first.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 19,
-                  color: gradient.first,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

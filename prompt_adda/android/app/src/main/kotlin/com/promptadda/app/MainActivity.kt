@@ -1,4 +1,4 @@
-package com.example.prompt_adda
+package com.promptadda.app
 
 import io.flutter.embedding.android.FlutterActivity
 

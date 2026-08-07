@@ -18,6 +18,15 @@ class AppColors {
   static const Color textSecondary = Color(0xFF686879);
   static const Color divider = Color(0xFFE8E1EE);
 
+  static const Color darkBackground = Color(0xFF0D0B12);
+  static const Color darkSurface = Color(0xFF18151E);
+  static const Color darkSurfaceSoft = Color(0xFF1D1924);
+  static const Color darkSurfaceElevated = Color(0xFF231D2C);
+
+  static const Color darkTextPrimary = Color(0xFFF6F1FF);
+  static const Color darkTextSecondary = Color(0xFFB4ADBD);
+  static const Color darkDivider = Color(0x1AFFFFFF);
+
   static const Color success = Color(0xFF2E9D65);
   static const Color error = Color(0xFFD64A5B);
 

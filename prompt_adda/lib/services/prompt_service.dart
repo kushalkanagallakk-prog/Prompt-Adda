@@ -104,6 +104,44 @@ class PromptService {
     });
   }
 
+  static Future<void> incrementViewCount(String promptId) async {
+    await _incrementCounter(promptId: promptId, fieldName: 'viewCount');
+  }
+
+  static Future<void> incrementCopyCount(String promptId) async {
+    await _incrementCounter(promptId: promptId, fieldName: 'copyCount');
+  }
+
+  static Future<void> incrementShareCount(String promptId) async {
+    await _incrementCounter(promptId: promptId, fieldName: 'shareCount');
+  }
+
+  static Future<void> incrementFavoriteCount(
+    String promptId, {
+    required bool isAdding,
+  }) async {
+    try {
+      await _promptsCollection.doc(promptId).update({
+        'favoriteCount': FieldValue.increment(isAdding ? 1 : -1),
+      });
+    } catch (_) {
+      // Analytics failure app usage ni block cheyyakudadhu.
+    }
+  }
+
+  static Future<void> _incrementCounter({
+    required String promptId,
+    required String fieldName,
+  }) async {
+    try {
+      await _promptsCollection.doc(promptId).update({
+        fieldName: FieldValue.increment(1),
+      });
+    } catch (_) {
+      // Analytics failure app usage ni block cheyyakudadhu.
+    }
+  }
+
   static List<PromptModel> _searchList(
     List<PromptModel> prompts,
     String query,

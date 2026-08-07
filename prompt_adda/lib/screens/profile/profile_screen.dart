@@ -7,6 +7,8 @@ import '../../core/theme/app_colors.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
+import '../admin/admin_login_screen.dart';
+import '../../services/theme_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +18,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  int _adminTapCount = 0;
+  DateTime? _lastAdminTap;
   Future<void> _shareApp() async {
     await SharePlus.instance.share(
       ShareParams(
@@ -70,12 +74,45 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
     );
   }
 
+  void _handleAdminTap() {
+    final now = DateTime.now();
+
+    if (_lastAdminTap == null ||
+        now.difference(_lastAdminTap!) > const Duration(seconds: 3)) {
+      _adminTapCount = 0;
+    }
+
+    _lastAdminTap = now;
+    _adminTapCount++;
+
+    if (_adminTapCount < 7) return;
+
+    _adminTapCount = 0;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.appBackgroundGradient,
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.dark
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF171122),
+                    Color(0xFF0E0C14),
+                    Color(0xFF17101F),
+                    Color(0xFF22151C),
+                  ],
+                  stops: [0, 0.38, 0.72, 1],
+                )
+              : AppColors.appBackgroundGradient,
         ),
         child: SafeArea(
           child: SingleChildScrollView(
@@ -88,18 +125,20 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
                   style: GoogleFonts.poppins(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 22),
                 _buildProfileHeader(),
-                const SizedBox(height: 28),
+                const SizedBox(height: 32),
                 Text(
                   'Your Stats',
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -140,7 +179,9 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -152,6 +193,24 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
                   onAbout: _openAbout,
                 ),
                 const SizedBox(height: 28),
+
+                Text(
+                  'Appearance',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                const _AppearanceCard(),
+
+                const SizedBox(height: 28),
+
                 Center(
                   child: Column(
                     children: [
@@ -160,22 +219,36 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
                         style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _handleAdminTap,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          child: Text(
+                            'Version 0.6.0',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Version 0.6.0',
+                        'Crafted with ❤️ in India',
                         style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Made with ❤️',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
+                          fontSize: 15,
                           color: AppColors.textSecondary,
                         ),
                       ),
@@ -193,14 +266,18 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
   Widget _buildProfileHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.82),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.divider),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF211D28)
+            : Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(24),
+        border: null,
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.08),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.primary.withValues(alpha: 0.10)
+                : Colors.black.withValues(alpha: 0.04),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -209,19 +286,19 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
       child: Row(
         children: [
           Container(
-            width: 64,
-            height: 64,
+            width: 72,
+            height: 72,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               gradient: AppColors.primaryGradient,
             ),
             child: const Icon(
               Icons.person_rounded,
-              size: 32,
+              size: 36,
               color: Colors.white,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 18),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -229,9 +306,9 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
                 Text(
                   'Welcome to Prompt Adda',
                   style: GoogleFonts.poppins(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -240,7 +317,7 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
                   style: GoogleFonts.poppins(
                     fontSize: 12,
                     height: 1.5,
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -268,9 +345,22 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.84),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF221E2A)
+            : Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.divider),
+        border: null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: Theme.of(context).brightness == Brightness.dark
+                  ? 0.24
+                  : 0.035,
+            ),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -281,24 +371,24 @@ class _StatCard extends StatelessWidget {
               color: AppColors.primarySoft,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 22),
+            child: Icon(icon, color: AppColors.primary, size: 24),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Text(
             title,
             style: GoogleFonts.poppins(
-              fontSize: 22,
+              fontSize: 29,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 4),
           Text(
             subtitle,
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
-              fontSize: 11,
-              color: AppColors.textSecondary,
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -326,9 +416,22 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.84),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF211D28)
+            : Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.divider),
+        border: null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: Theme.of(context).brightness == Brightness.dark
+                  ? 0.24
+                  : 0.035,
+            ),
+            blurRadius: 24,
+            offset: const Offset(0, 11),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -392,7 +495,9 @@ class _SettingsTile extends StatelessWidget {
         style: GoogleFonts.poppins(
           fontSize: 13.5,
           fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.darkTextPrimary
+              : AppColors.textPrimary,
         ),
       ),
       trailing: const Icon(
@@ -461,9 +566,22 @@ class _PrivacyPolicyScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.88),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF1A171F)
+                          : Colors.white.withValues(alpha: 0.88),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.divider),
+                      border: Theme.of(context).brightness == Brightness.dark
+                          ? null
+                          : Border.all(color: AppColors.divider),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.black.withValues(alpha: 0.30)
+                              : Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 22,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -522,6 +640,140 @@ class _PrivacyPolicyScreen extends StatelessWidget {
   }
 }
 
+class _AppearanceCard extends StatelessWidget {
+  const _AppearanceCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeService.themeModeNotifier,
+      builder: (context, selectedMode, child) {
+        return Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF221E2A)
+                : Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(22),
+            border: null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.24
+                      : 0.035,
+                ),
+                blurRadius: 22,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _ThemeModeButton(
+                  label: 'System',
+                  icon: Icons.settings_suggest_rounded,
+                  mode: ThemeMode.system,
+                  selectedMode: selectedMode,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _ThemeModeButton(
+                  label: 'Light',
+                  icon: Icons.light_mode_rounded,
+                  mode: ThemeMode.light,
+                  selectedMode: selectedMode,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _ThemeModeButton(
+                  label: 'Dark',
+                  icon: Icons.dark_mode_rounded,
+                  mode: ThemeMode.dark,
+                  selectedMode: selectedMode,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ThemeModeButton extends StatelessWidget {
+  const _ThemeModeButton({
+    required this.label,
+    required this.icon,
+    required this.mode,
+    required this.selectedMode,
+  });
+
+  final String label;
+  final IconData icon;
+  final ThemeMode mode;
+  final ThemeMode selectedMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = mode == selectedMode;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => ThemeService.setThemeMode(mode),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutQuart,
+        height: 58,
+        decoration: BoxDecoration(
+          gradient: selected ? AppColors.primaryGradient : null,
+          color: selected
+              ? null
+              : Theme.of(context).brightness == Brightness.dark
+              ? Colors.white.withValues(alpha: 0.03)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.34),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 19,
+              color: selected
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: selected
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _PolicySection extends StatelessWidget {
   const _PolicySection({
     required this.title,
@@ -574,9 +826,11 @@ class _AboutPromptAddaSheet extends StatelessWidget {
       top: false,
       child: Container(
         padding: const EdgeInsets.fromLTRB(24, 14, 24, 28),
-        decoration: const BoxDecoration(
-          color: Color(0xFFF9F7FF),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF141218)
+              : const Color(0xFFF9F7FF),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -635,17 +889,30 @@ class _AboutPromptAddaSheet extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.78),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1A171F)
+                    : Colors.white.withValues(alpha: 0.78),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.divider),
+                border: Theme.of(context).brightness == Brightness.dark
+                    ? null
+                    : Border.all(color: AppColors.divider),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black.withValues(alpha: 0.30)
+                        : Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
                   Text(
-                    'Made with ❤️',
+                    'Crafted with ❤️ in India',
                     style: GoogleFonts.poppins(
                       fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary,
                     ),
                   ),
@@ -653,7 +920,7 @@ class _AboutPromptAddaSheet extends StatelessWidget {
                   Text(
                     '© 2026 Prompt Adda',
                     style: GoogleFonts.poppins(
-                      fontSize: 12,
+                      fontSize: 12.5,
                       color: AppColors.textSecondary,
                     ),
                   ),
@@ -737,9 +1004,11 @@ class _ContactUsSheet extends StatelessWidget {
       top: false,
       child: Container(
         padding: const EdgeInsets.fromLTRB(24, 14, 24, 28),
-        decoration: const BoxDecoration(
-          color: Color(0xFFF9F7FF),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF141218)
+              : const Color(0xFFF9F7FF),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

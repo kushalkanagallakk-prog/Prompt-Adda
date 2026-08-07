@@ -9,11 +9,22 @@ class PromptModel {
   final String prompt;
   final List<String> tags;
   final IconData icon;
+  final List<String> imageUrls;
 
   final bool isFeatured;
   final bool isTrending;
   final bool isPremium;
   final DateTime? createdAt;
+
+  final int viewCount;
+  final int copyCount;
+  final int shareCount;
+  final int favoriteCount;
+
+  String? get coverImage {
+    if (imageUrls.isEmpty) return null;
+    return imageUrls.first;
+  }
 
   const PromptModel({
     required this.id,
@@ -27,6 +38,11 @@ class PromptModel {
     this.isTrending = false,
     this.isPremium = false,
     this.createdAt,
+    this.imageUrls = const [],
+    this.viewCount = 0,
+    this.copyCount = 0,
+    this.shareCount = 0,
+    this.favoriteCount = 0,
   });
 
   factory PromptModel.fromFirestore(
@@ -42,6 +58,7 @@ class PromptModel {
       category: data['category']?.toString() ?? 'General',
       description: data['description']?.toString() ?? '',
       prompt: data['prompt']?.toString() ?? '',
+      imageUrls: _parseImageUrls(data),
       tags: rawTags is List
           ? rawTags.map((tag) => tag.toString()).toList()
           : <String>[],
@@ -50,7 +67,42 @@ class PromptModel {
       isTrending: data['isTrending'] == true,
       isPremium: data['isPremium'] == true,
       createdAt: _parseDate(data['createdAt']),
+      viewCount: _parseCount(data['viewCount']),
+      copyCount: _parseCount(data['copyCount']),
+      shareCount: _parseCount(data['shareCount']),
+      favoriteCount: _parseCount(data['favoriteCount']),
     );
+  }
+
+  static List<String> _parseImageUrls(Map<String, dynamic> data) {
+    final rawImageUrls = data['imageUrls'];
+
+    if (rawImageUrls is List) {
+      return rawImageUrls
+          .map((url) => url.toString().trim())
+          .where((url) => url.isNotEmpty)
+          .toList();
+    }
+
+    final legacyImageUrl = data['imageUrl']?.toString().trim() ?? '';
+
+    if (legacyImageUrl.isNotEmpty) {
+      return [legacyImageUrl];
+    }
+
+    return <String>[];
+  }
+
+  static int _parseCount(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+
+    if (value is num) {
+      return value.toInt();
+    }
+
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   static DateTime? _parseDate(dynamic value) {

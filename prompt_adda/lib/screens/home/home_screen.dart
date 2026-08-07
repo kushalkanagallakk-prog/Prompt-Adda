@@ -8,11 +8,11 @@ import '../../models/prompt_model.dart';
 import '../../services/favorites_service.dart';
 import '../prompt/prompt_details_screen.dart';
 import 'widgets/hero_carousel.dart';
-import '../categories/category_prompts_screen.dart';
 import 'widgets/featured_collections.dart';
 import 'widgets/recently_added.dart';
 import '../../widgets/premium_badge.dart';
 import '../../widgets/premium_prompt_dialog.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -44,8 +44,20 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.appBackgroundGradient,
+        decoration: BoxDecoration(
+          gradient: Theme.of(context).brightness == Brightness.dark
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF171122),
+                    Color(0xFF0E0C14),
+                    Color(0xFF17101F),
+                    Color(0xFF22151C),
+                  ],
+                  stops: [0, 0.38, 0.72, 1],
+                )
+              : AppColors.appBackgroundGradient,
         ),
         child: Stack(
           children: [
@@ -132,26 +144,62 @@ class _HomeScreenState extends State<HomeScreen> {
                         matchesTags;
                   }).toList();
 
+                  const hiddenTrendingTitles = {
+                    'youtube shorts hook',
+                    'instagram viral reel',
+                  };
+
                   final trendingPrompts = allPrompts
-                      .where((prompt) => prompt.isTrending)
+                      .where(
+                        (prompt) =>
+                            prompt.isTrending &&
+                            !hiddenTrendingTitles.contains(
+                              prompt.title.trim().toLowerCase(),
+                            ),
+                      )
                       .toList();
 
-                  final featuredPrompts = allPrompts
-                      .where((prompt) => prompt.isFeatured)
-                      .take(4)
-                      .toList();
+                  final featuredPrompts =
+                      allPrompts
+                          .where(
+                            (prompt) =>
+                                prompt.isFeatured &&
+                                prompt.title.trim().toLowerCase() !=
+                                    'instagram viral reel',
+                          )
+                          .toList()
+                        ..sort((first, second) {
+                          final firstDate =
+                              first.createdAt ??
+                              DateTime.fromMillisecondsSinceEpoch(0);
+                          final secondDate =
+                              second.createdAt ??
+                              DateTime.fromMillisecondsSinceEpoch(0);
+
+                          return secondDate.compareTo(firstDate);
+                        });
 
                   final displayedPrompts = isSearching
                       ? searchResults
                       : trendingPrompts;
 
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 125),
+                  return RefreshIndicator(
+  color: AppColors.primary,
+  onRefresh: () async {
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    if (mounted) {
+      setState(() {});
+    }
+  },
+  child: SingleChildScrollView(
+    physics: const AlwaysScrollableScrollPhysics(),
+    padding: const EdgeInsets.fromLTRB(20, 18, 20, 125),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const _TopHeader(),
-                        const SizedBox(height: 26),
+                        const SizedBox(height: 22),
 
                         _SearchBar(
                           controller: _searchController,
@@ -163,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onClear: _clearSearch,
                         ),
 
-                        const SizedBox(height: 26),
+                        const SizedBox(height: 36),
 
                         if (!isSearching && allPrompts.isNotEmpty) ...[
                           if (featuredPrompts.isNotEmpty) ...[
@@ -172,14 +220,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
 
                           _SectionHeader(
-                            title: 'Categories',
-                            actionText: 'See all',
+                            title: 'Recently Added',
+                            actionText: 'View all',
                             onTap: () {},
                           ),
                           const SizedBox(height: 16),
-
-                          _CategoriesGrid(prompts: allPrompts),
-
+                          const RecentlyAdded(),
                           const SizedBox(height: 30),
 
                           _SectionHeader(
@@ -189,15 +235,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 16),
                           const FeaturedCollections(),
-                          const SizedBox(height: 30),
-
-                          _SectionHeader(
-                            title: 'Recently Added',
-                            actionText: 'View all',
-                            onTap: () {},
-                          ),
-                          const SizedBox(height: 16),
-                          const RecentlyAdded(),
                           const SizedBox(height: 30),
                         ],
 
@@ -213,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 18),
 
                         if (displayedPrompts.isEmpty)
                           const _EmptySearchResult()
@@ -256,7 +293,7 @@ class _TopHeader extends StatelessWidget {
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 4),
@@ -267,7 +304,7 @@ class _TopHeader extends StatelessWidget {
                   height: 1.15,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.8,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -277,13 +314,25 @@ class _TopHeader extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.82),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1A181F)
+                : Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.divider),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.30
+                      : 0.08,
+                ),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.notifications_none_rounded,
-            color: AppColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
       ],
@@ -305,24 +354,21 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 62,
+      height: 60,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.88),
-          width: 1.4,
-        ),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF18171F)
+            : const Color(0xFFF2ECFF),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.08),
-            blurRadius: 28,
-            offset: const Offset(0, 12),
-          ),
-          const BoxShadow(
-            color: Color(0x0F000000),
+            color: Colors.black.withValues(
+              alpha: Theme.of(context).brightness == Brightness.dark
+                  ? 0.18
+                  : 0.025,
+            ),
             blurRadius: 12,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -330,23 +376,39 @@ class _SearchBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 18),
         child: Row(
           children: [
-            const Icon(Icons.search_rounded, color: AppColors.primary),
+            Icon(
+              Icons.search_rounded,
+              size: 22,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.72),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: TextField(
                 controller: controller,
                 onChanged: onChanged,
                 decoration: InputDecoration(
-                  hintText: 'Search prompts, categories, tags...',
+                  hintText: 'Search prompts...',
+                  filled: false,
+                  fillColor: Colors.transparent,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
                   border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
                   hintStyle: GoogleFonts.poppins(
                     fontSize: 13.5,
-                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w400,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.68),
                   ),
                 ),
                 style: GoogleFonts.poppins(
                   fontSize: 14,
-                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -354,18 +416,17 @@ class _SearchBar extends StatelessWidget {
               valueListenable: controller,
               builder: (context, value, child) {
                 if (value.text.isEmpty) {
-                  return const Icon(
-                    Icons.tune_rounded,
-                    color: AppColors.primary,
-                    size: 20,
-                  );
+                  return const SizedBox.shrink();
                 }
 
                 return IconButton(
+                  tooltip: 'Clear search',
                   onPressed: onClear,
-                  icon: const Icon(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
                     Icons.close_rounded,
-                    color: AppColors.primary,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 );
               },
@@ -398,7 +459,7 @@ class _SectionHeader extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontSize: 21,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ),
@@ -414,252 +475,6 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _CategoriesGrid extends StatelessWidget {
-  const _CategoriesGrid({required this.prompts});
-
-  final List<PromptModel> prompts;
-
-  static const List<List<Color>> _categoryGradients = [
-    [Color(0xFF5B36C9), Color(0xFF8E5CE6)],
-    [Color(0xFFC84C74), Color(0xFFEC7C9F)],
-    [Color(0xFF176B87), Color(0xFF32A5B8)],
-    [Color(0xFFB86C21), Color(0xFFE9A444)],
-  ];
-
-  IconData _categoryIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'social media':
-        return Icons.forum_rounded;
-
-      case 'youtube':
-        return Icons.play_circle_fill_rounded;
-
-      case 'design':
-        return Icons.palette_rounded;
-
-      case 'coding':
-        return Icons.code_rounded;
-
-      case 'writing':
-        return Icons.edit_note_rounded;
-
-      case 'video':
-        return Icons.movie_creation_rounded;
-
-      default:
-        return Icons.auto_awesome_rounded;
-    }
-  }
-
-  void _openCategory(
-    BuildContext context, {
-    required String category,
-    required List<PromptModel> prompts,
-    required IconData icon,
-    required List<Color> gradient,
-  }) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CategoryPromptsScreen(
-          category: category,
-          prompts: prompts,
-          icon: icon,
-          gradient: gradient,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final categoryNames = <String>[];
-
-    for (final prompt in PromptService.getAll()) {
-      if (!categoryNames.contains(prompt.category)) {
-        categoryNames.add(prompt.category);
-      }
-    }
-
-    return GridView.builder(
-      itemCount: categoryNames.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
-        childAspectRatio: 1.08,
-      ),
-      itemBuilder: (context, index) {
-        final category = categoryNames[index];
-
-        final categoryPrompts = PromptService.getAll()
-            .where((prompt) => prompt.category == category)
-            .toList();
-
-        final gradient = _categoryGradients[index % _categoryGradients.length];
-
-        final icon = _categoryIcon(category);
-
-        return _PremiumCategoryCard(
-          category: category,
-          promptCount: categoryPrompts.length,
-          icon: icon,
-          gradient: gradient,
-          onTap: () {
-            _openCategory(
-              context,
-              category: category,
-              prompts: categoryPrompts,
-              icon: icon,
-              gradient: gradient,
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-class _PremiumCategoryCard extends StatelessWidget {
-  const _PremiumCategoryCard({
-    required this.category,
-    required this.promptCount,
-    required this.icon,
-    required this.gradient,
-    required this.onTap,
-  });
-
-  final String category;
-  final int promptCount;
-  final IconData icon;
-  final List<Color> gradient;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: gradient,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: gradient.first.withValues(alpha: 0.20),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: -35,
-                  right: -30,
-                  child: Container(
-                    width: 115,
-                    height: 115,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.10),
-                    ),
-                  ),
-                ),
-
-                Positioned(
-                  right: -8,
-                  bottom: -12,
-                  child: Icon(
-                    icon,
-                    size: 82,
-                    color: Colors.white.withValues(alpha: 0.13),
-                  ),
-                ),
-
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(15),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.24),
-                              ),
-                            ),
-                            child: Icon(icon, color: Colors.white, size: 22),
-                          ),
-
-                          const Spacer(),
-
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.16),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.arrow_outward_rounded,
-                              size: 17,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const Spacer(),
-
-                      Text(
-                        category,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-
-                      const SizedBox(height: 4),
-
-                      Text(
-                        '$promptCount ${promptCount == 1 ? 'prompt' : 'prompts'}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.78),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -713,49 +528,6 @@ class _PremiumPromptCard extends StatelessWidget {
     );
   }
 
-  Future<void> _copyPrompt(BuildContext context) async {
-    if (prompt.isPremium) {
-      showPremiumPromptDialog(context);
-      return;
-    }
-
-    await Clipboard.setData(ClipboardData(text: prompt.prompt));
-
-    if (!context.mounted) return;
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(
-                Icons.check_circle_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Prompt copied successfully',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-          margin: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-      );
-  }
-
   Future<void> _sharePrompt(BuildContext context) async {
     if (prompt.isPremium) {
       showPremiumPromptDialog(context);
@@ -783,22 +555,23 @@ Shared from Prompt Adda
       color: Colors.transparent,
       child: Ink(
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.90),
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.95),
-            width: 1.2,
-          ),
+          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(28),
+          border: null,
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF2B1F3D).withValues(alpha: 0.08),
-              blurRadius: 26,
-              offset: const Offset(0, 13),
+              color: Colors.black.withValues(
+                alpha: Theme.of(context).brightness == Brightness.dark
+                    ? 0.20
+                    : 0.025,
+              ),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(26),
+          borderRadius: BorderRadius.circular(28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -829,11 +602,13 @@ Shared from Prompt Adda
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.poppins(
-                                  fontSize: 17,
-                                  height: 1.28,
+                                  fontSize: 18,
+                                  height: 1.22,
                                   fontWeight: FontWeight.w700,
                                   letterSpacing: -0.25,
-                                  color: AppColors.textPrimary,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                 ),
                               ),
                             ),
@@ -846,8 +621,12 @@ Shared from Prompt Adda
                               width: 38,
                               height: 38,
                               decoration: BoxDecoration(
-                                color: AppColors.primarySoft,
-                                borderRadius: BorderRadius.circular(13),
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? const Color(0xFF33234E)
+                                    : AppColors.primarySoft,
+                                borderRadius: BorderRadius.circular(14),
                               ),
                               child: const Icon(
                                 Icons.arrow_outward_rounded,
@@ -865,9 +644,9 @@ Shared from Prompt Adda
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.poppins(
-                        fontSize: 12.5,
-                        height: 1.55,
-                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        height: 1.6,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 15),
@@ -892,7 +671,9 @@ Shared from Prompt Adda
                     const SizedBox(height: 16),
                     Container(
                       height: 1,
-                      color: AppColors.textSecondary.withValues(alpha: 0.10),
+                      color: Theme.of(
+                        context,
+                      ).dividerColor.withValues(alpha: 0.25),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -901,7 +682,12 @@ Shared from Prompt Adda
                           child: _PromptActionButton(
                             icon: Icons.copy_all_rounded,
                             label: 'Copy',
-                            onTap: () => _copyPrompt(context),
+                            onTap: () {
+                              Clipboard.setData(
+                                ClipboardData(text: prompt.prompt),
+                              );
+                              HapticFeedback.lightImpact();
+                            },
                           ),
                         ),
                         const SizedBox(width: 9),
@@ -953,18 +739,18 @@ class _PromptActionButton extends StatelessWidget {
       color: isPrimary
           ? AppColors.primary
           : AppColors.primarySoft.withValues(alpha: 0.75),
-      borderRadius: BorderRadius.circular(13),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(14),
         child: SizedBox(
-          height: 43,
+          height: 46,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                size: 17,
+                size: 18,
                 color: isPrimary ? Colors.white : AppColors.primary,
               ),
               const SizedBox(width: 6),
@@ -973,7 +759,7 @@ class _PromptActionButton extends StatelessWidget {
                   label,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(
-                    fontSize: 11.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: isPrimary ? Colors.white : AppColors.primary,
                   ),
@@ -1000,89 +786,91 @@ class _PromptVisualHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 142,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradient,
-        ),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(26),
-          topRight: Radius.circular(26),
-        ),
-      ),
+    final coverImage = prompt.coverImage;
+    final imageCount = prompt.imageUrls.length;
+
+    return AspectRatio(
+      aspectRatio: 3 / 4,
       child: ClipRRect(
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(26),
-          topRight: Radius.circular(26),
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
         ),
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            Positioned(
-              top: -48,
-              right: -28,
-              child: Container(
-                width: 155,
-                height: 155,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.12),
+            if (coverImage != null)
+              CachedNetworkImage(
+                imageUrl: coverImage,
+                fit: BoxFit.cover,
+                placeholder: (context, url) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: gradient,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  );
+                },
+                errorWidget: (context, url, error) {
+                  return _buildFallback();
+                },
+              )
+            else
+              _buildFallback(),
+
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x08000000),
+                    Color(0x22000000),
+                    Color(0x72000000),
+                    Color(0xD0000000),
+                  ],
+                  stops: [0.0, 0.35, 0.72, 1.0],
                 ),
               ),
             ),
+
             Positioned(
-              bottom: -55,
-              left: -25,
+              top: 15,
+              left: 15,
               child: Container(
-                width: 145,
-                height: 145,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.09),
-                ),
-              ),
-            ),
-            Positioned(
-              right: 24,
-              bottom: -8,
-              child: Transform.rotate(
-                angle: -0.12,
-                child: Icon(
-                  prompt.icon,
-                  size: 105,
-                  color: Colors.white.withValues(alpha: 0.18),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 16,
-              left: 16,
-              child: Container(
+                constraints: const BoxConstraints(maxWidth: 190),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
-                  vertical: 7,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.92),
+                  color: Colors.black.withValues(alpha: 0.22),
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      color: Colors.black.withValues(alpha: 0.10),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
                 child: Text(
                   prompt.category.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(
-                    fontSize: 9.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.65,
-                    color: gradient.first,
+                    color: Colors.white.withValues(alpha: 0.96),
                   ),
                 ),
               ),
@@ -1094,30 +882,80 @@ class _PromptVisualHeader extends StatelessWidget {
               child: _AnimatedFavoriteButton(promptId: prompt.id),
             ),
 
+            if (imageCount > 1)
+              Positioned(
+                right: 15,
+                bottom: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.58),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.photo_library_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        '$imageCount',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             Positioned(
-              left: 18,
-              bottom: 17,
+              left: 16,
+              right: imageCount > 1 ? 76 : 16,
+              bottom: 15,
               child: Row(
                 children: [
                   Container(
-                    width: 41,
-                    height: 41,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.25),
+                        color: Colors.white.withValues(alpha: 0.20),
                       ),
                     ),
-                    child: Icon(prompt.icon, color: Colors.white, size: 21),
+                    child: Icon(
+                      index == 0
+                          ? Icons.workspace_premium_rounded
+                          : Icons.auto_awesome_rounded,
+                      color: Colors.white,
+                      size: 21,
+                    ),
                   ),
                   const SizedBox(width: 10),
-                  Text(
-                    index == 0 ? 'Editor’s Pick' : 'Prompt Adda Choice',
-                    style: GoogleFonts.poppins(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                  Expanded(
+                    child: Text(
+                      index == 0 ? 'Editor’s Pick' : 'Prompt Adda Choice',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -1125,6 +963,24 @@ class _PromptVisualHeader extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFallback() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        prompt.icon,
+        size: 80,
+        color: Colors.white.withValues(alpha: 0.32),
       ),
     );
   }
@@ -1259,7 +1115,7 @@ class _AnimatedFavoriteButtonState extends State<_AnimatedFavoriteButton>
                   ? [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 14,
+                        blurRadius: 28,
                         offset: const Offset(0, 6),
                       ),
                     ]
@@ -1306,16 +1162,22 @@ class _PromptInfoChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F1FC),
+        color: isDark ? const Color(0xFF2A2433) : const Color(0xFFF6F1FC),
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: AppColors.primary),
+          Icon(
+            icon,
+            size: 13,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.primary,
+          ),
           const SizedBox(width: 5),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 75),
@@ -1326,7 +1188,9 @@ class _PromptInfoChip extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontSize: 9.5,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primaryDark,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.primaryDark,
               ),
             ),
           ),

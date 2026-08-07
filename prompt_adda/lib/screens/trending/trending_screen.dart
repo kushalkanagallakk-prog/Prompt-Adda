@@ -4,10 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/prompt_model.dart';
 import '../../services/prompt_service.dart';
-import '../../services/favorites_service.dart';
 import '../prompt/prompt_details_screen.dart';
-import '../../widgets/premium_badge.dart';
 import '../../widgets/premium_prompt_dialog.dart';
+import '../../widgets/prompt_card.dart';
 
 class TrendingScreen extends StatelessWidget {
   const TrendingScreen({super.key});
@@ -27,8 +26,20 @@ class TrendingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: AppColors.appBackgroundGradient,
+      decoration: BoxDecoration(
+        gradient: Theme.of(context).brightness == Brightness.dark
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF171122),
+                  Color(0xFF0E0C14),
+                  Color(0xFF17101F),
+                  Color(0xFF22151C),
+                ],
+                stops: [0, 0.38, 0.72, 1],
+              )
+            : AppColors.appBackgroundGradient,
       ),
       child: SafeArea(
         bottom: false,
@@ -105,17 +116,19 @@ class TrendingScreen extends StatelessWidget {
                             Text(
                               'Trending',
                               style: GoogleFonts.poppins(
-                                fontSize: 29,
+                                fontSize: 24,
                                 fontWeight: FontWeight.w700,
-                                letterSpacing: -0.8,
-                                color: AppColors.textPrimary,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             Text(
                               '${trendingPrompts.length} popular ${trendingPrompts.length == 1 ? 'prompt' : 'prompts'}',
                               style: GoogleFonts.poppins(
                                 fontSize: 13,
-                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -134,8 +147,10 @@ class TrendingScreen extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final prompt = trendingPrompts[index];
 
-                      return _TrendingPromptCard(
+                      return PromptCard(
                         prompt: prompt,
+                        footerLabel: 'Trending',
+                        footerIcon: Icons.arrow_forward_rounded,
                         onTap: () {
                           _openPrompt(context, prompt);
                         },
@@ -191,7 +206,7 @@ class _TrendingMessage extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -201,158 +216,10 @@ class _TrendingMessage extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontSize: 14,
                 height: 1.5,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TrendingPromptCard extends StatelessWidget {
-  const _TrendingPromptCard({required this.prompt, required this.onTap});
-
-  final PromptModel prompt;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(26),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(26),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.90)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Row(
-              children: [
-                Container(
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF9A5AF5), Color(0xFF5B2ACD)],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Icon(
-                    prompt.isPremium
-                        ? Icons.workspace_premium_rounded
-                        : Icons.local_fire_department_rounded,
-                    color: Colors.white,
-                    size: 29,
-                  ),
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              prompt.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                          if (prompt.isPremium) ...[
-                            const SizedBox(width: 8),
-                            const PremiumBadge(),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        prompt.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          fontSize: 11.5,
-                          height: 1.45,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1E9FF),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          prompt.category,
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF6E3FD5),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ValueListenableBuilder<Set<String>>(
-                  valueListenable: FavoritesService.favoriteIdsNotifier,
-                  builder: (context, favoriteIds, _) {
-                    final isFavorite = favoriteIds.contains(prompt.id);
-
-                    return Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(14),
-                        onTap: () async {
-                          await FavoritesService.toggleFavorite(prompt.id);
-                        },
-                        child: Ink(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1E9FF),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(
-                            isFavorite
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            color: const Color(0xFF6E3FD5),
-                            size: 21,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );
