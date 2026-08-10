@@ -12,7 +12,12 @@
           "package_name": "com.example.prompt_adda"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "410369849677-akhm72nh2lira3lj3ooj276t1te4jjua.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAsrJVCQP2f1ODDqpbc5ki3GqyxahMC6Yc"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "410369849677-akhm72nh2lira3lj3ooj276t1te4jjua.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "410369849677-mnmui6duansbvbuq43l39jp00lkjkc4i.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.promptAdda"
+              }
+            }
+          ]
         }
       }
     },
@@ -31,7 +48,20 @@
           "package_name": "com.promptadda.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "410369849677-8uht6b1dqm6usni1qfsse7aipfb19tnt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.promptadda.app",
+            "certificate_hash": "6f49e70addddb7ffb4e56c5b6e215f6d4559fd1e"
+          }
+        },
+        {
+          "client_id": "410369849677-akhm72nh2lira3lj3ooj276t1te4jjua.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAsrJVCQP2f1ODDqpbc5ki3GqyxahMC6Yc"
@@ -39,7 +69,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "410369849677-akhm72nh2lira3lj3ooj276t1te4jjua.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "410369849677-mnmui6duansbvbuq43l39jp00lkjkc4i.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.promptAdda"
+              }
+            }
+          ]
         }
       }
     }

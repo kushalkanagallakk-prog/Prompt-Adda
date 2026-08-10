@@ -7,8 +7,11 @@ import '../../core/theme/app_colors.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
-import '../admin/admin_login_screen.dart';
+import '../admin/admin_dashboard_screen.dart';
+import '../../services/admin_auth_service.dart';
 import '../../services/theme_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,6 +23,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   int _adminTapCount = 0;
   DateTime? _lastAdminTap;
+  bool _isGoogleSigningIn = false;
   Future<void> _shareApp() async {
     await SharePlus.instance.share(
       ShareParams(
@@ -33,6 +37,67 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
 ''',
       ),
     );
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isGoogleSigningIn) return;
+
+    setState(() {
+      _isGoogleSigningIn = true;
+    });
+
+    try {
+      await AuthService.signInWithGoogle();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: const Text('Welcome to Prompt Adda ✨'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Google sign-in failed: $error'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleSigningIn = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _signOut() async {
+    try {
+      await AuthService.signOut();
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Unable to sign out: $error'),
+        ),
+      );
+    }
   }
 
   Future<void> _rateApp() async {
@@ -89,9 +154,35 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
 
     _adminTapCount = 0;
 
+    if (!AdminAuthService.isSignedIn) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Sign in with your authorized Google account first.'),
+          ),
+        );
+
+      return;
+    }
+
+    if (!AdminAuthService.isCurrentUserAdmin) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Admin access denied.'),
+          ),
+        );
+
+      return;
+    }
+
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+      MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
     );
   }
 
@@ -264,67 +355,324 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
   }
 
   Widget _buildProfileHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF211D28)
-            : Theme.of(context).colorScheme.surface.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(24),
-        border: null,
-        boxShadow: [
-          BoxShadow(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? AppColors.primary.withValues(alpha: 0.10)
-                : Colors.black.withValues(alpha: 0.04),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: AppColors.primaryGradient,
+    return StreamBuilder<User?>(
+      stream: AuthService.authStateChanges,
+      builder: (context, snapshot) {
+        final user = snapshot.data ?? AuthService.currentUser;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        if (user == null) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(22, 28, 22, 24),
+            decoration: BoxDecoration(
+              gradient: isDark
+                  ? const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF282035), Color(0xFF18151F)],
+                    )
+                  : const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFF7F1FF), Color(0xFFFFFBFF)],
+                    ),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: isDark
+                    ? AppColors.primary.withValues(alpha: 0.20)
+                    : AppColors.primary.withValues(alpha: 0.12),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(
+                    alpha: isDark ? 0.12 : 0.08,
+                  ),
+                  blurRadius: 32,
+                  offset: const Offset(0, 14),
+                ),
+              ],
             ),
-            child: const Icon(
-              Icons.person_rounded,
-              size: 36,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 18),
-          Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.28),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 34,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 18),
                 Text(
                   'Welcome to Prompt Adda',
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
-                    fontSize: 17,
+                    fontSize: 20,
                     fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Text(
-                  'Discover, save and use powerful AI prompts.',
+                  'Sign in to save prompts, comment and sync your favorites.',
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    height: 1.5,
+                    fontSize: 12.5,
+                    height: 1.6,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: Material(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    child: InkWell(
+                      onTap: _isGoogleSigningIn ? null : _signInWithGoogle,
+                      borderRadius: BorderRadius.circular(18),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.12)
+                                : Colors.black.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_isGoogleSigningIn)
+                              const SizedBox(
+                                width: 21,
+                                height: 21,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.2,
+                                  color: AppColors.primary,
+                                ),
+                              )
+                            else
+                              Container(
+                                width: 28,
+                                height: 28,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.black.withValues(alpha: 0.06),
+                                  ),
+                                ),
+                                child: Text(
+                                  'G',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF4285F4),
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(width: 12),
+                            Text(
+                              _isGoogleSigningIn
+                                  ? 'Signing in...'
+                                  : 'Continue with Google',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Quick • Secure • No password',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
+          );
+        }
+
+        final displayName = (user.displayName ?? '').trim();
+        final email = user.email ?? '';
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            gradient: isDark
+                ? const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF2B2038), Color(0xFF1A171F)],
+                  )
+                : const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFF4ECFF), Color(0xFFFFFFFF)],
+                  ),
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.16),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.10),
+                blurRadius: 30,
+                offset: const Offset(0, 14),
+              ),
+            ],
           ),
-        ],
-      ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: AppColors.primaryGradient,
+                    ),
+                    child: ClipOval(
+                      child: user.photoURL != null
+                          ? Image.network(
+                              user.photoURL!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) {
+                                return Container(
+                                  color: AppColors.primarySoft,
+                                  alignment: Alignment.center,
+                                  child: const Icon(
+                                    Icons.person_rounded,
+                                    color: AppColors.primary,
+                                    size: 34,
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: AppColors.primarySoft,
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.person_rounded,
+                                color: AppColors.primary,
+                                size: 34,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName.isEmpty
+                              ? 'Prompt Adda Member'
+                              : displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        if (email.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            email,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11.5,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Text(
+                            '✦ PROMPT ADDA MEMBER',
+                            style: GoogleFonts.poppins(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: OutlinedButton.icon(
+                  onPressed: _signOut,
+                  icon: const Icon(Icons.logout_rounded, size: 18),
+                  label: const Text('Sign out'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.onSurface,
+                    side: BorderSide(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.12),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

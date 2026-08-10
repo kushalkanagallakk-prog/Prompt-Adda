@@ -10,12 +10,8 @@ import 'admin_analytics_screen.dart';
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
 
-  Future<void> _logout(BuildContext context) async {
-    await AdminAuthService.signOut();
-
-    if (!context.mounted) return;
-
-    Navigator.popUntil(context, (route) => route.isFirst);
+  void _logout(BuildContext context) {
+    Navigator.pop(context);
   }
 
   void _showComingSoon(BuildContext context, String feature) {

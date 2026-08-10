@@ -13,8 +13,9 @@ import '../../services/prompt_service.dart';
 
 class PromptDetailsScreen extends StatefulWidget {
   final PromptModel prompt;
+  final String? heroTag;
 
-  const PromptDetailsScreen({super.key, required this.prompt});
+  const PromptDetailsScreen({super.key, required this.prompt, this.heroTag});
 
   @override
   State<PromptDetailsScreen> createState() => _PromptDetailsScreenState();
@@ -290,9 +291,9 @@ $playStoreLink
                       },
                     );
 
-                    if (index == 0) {
+                    if (index == 0 && widget.heroTag != null) {
                       return Hero(
-                        tag: 'prompt-image-${prompt.id}',
+                        tag: widget.heroTag!,
                         child: Material(
                           color: Colors.transparent,
                           child: imageWidget,

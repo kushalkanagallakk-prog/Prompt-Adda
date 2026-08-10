@@ -59,6 +59,12 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
   final List<XFile> _newImages = <XFile>[];
   final List<String> _existingImageUrls = <String>[];
 
+  final List<TextEditingController> _existingImageTagControllers =
+      <TextEditingController>[];
+
+  final List<TextEditingController> _newImageTagControllers =
+      <TextEditingController>[];
+
   late List<String> _aiModels;
   late List<String> _categories;
 
@@ -167,6 +173,25 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
       _existingImageUrls.insert(0, coverImage);
     }
 
+    final rawImageTags = data['imageTags'];
+
+    for (var index = 0; index < _existingImageUrls.length; index++) {
+      String tagsText = '';
+
+      if (rawImageTags is List && index < rawImageTags.length) {
+        final rawTagsForImage = rawImageTags[index];
+
+        if (rawTagsForImage is List) {
+          tagsText = rawTagsForImage
+              .map((tag) => tag.toString().trim())
+              .where((tag) => tag.isNotEmpty)
+              .join(', ');
+        }
+      }
+
+      _existingImageTagControllers.add(TextEditingController(text: tagsText));
+    }
+
     _isFeatured = data['isFeatured'] == true;
     _isTrending = data['isTrending'] == true;
     _isPremium = data['isPremium'] == true;
@@ -248,6 +273,10 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
 
       setState(() {
         _newImages.addAll(images);
+
+        for (var index = 0; index < images.length; index++) {
+          _newImageTagControllers.add(TextEditingController());
+        }
       });
     } catch (error) {
       if (!mounted) return;
@@ -261,6 +290,24 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
 
     setState(() {
       _existingImageUrls.removeAt(index);
+
+      for (final controller in _existingImageTagControllers) {
+        controller.dispose();
+      }
+
+      for (final controller in _newImageTagControllers) {
+        controller.dispose();
+      }
+
+      final controller = _existingImageTagControllers.removeAt(index);
+      controller.dispose();
+    });
+
+    setState(() {
+      _newImages.removeAt(index);
+
+      final controller = _newImageTagControllers.removeAt(index);
+      controller.dispose();
     });
   }
 
@@ -277,7 +324,10 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
 
     setState(() {
       final image = _existingImageUrls.removeAt(index);
+      final tagController = _existingImageTagControllers.removeAt(index);
+
       _existingImageUrls.insert(0, image);
+      _existingImageTagControllers.insert(0, tagController);
     });
   }
 
@@ -286,9 +336,12 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
 
     setState(() {
       final image = _newImages.removeAt(index);
+      final tagController = _newImageTagControllers.removeAt(index);
 
       _existingImageUrls.clear();
+
       _newImages.insert(0, image);
+      _newImageTagControllers.insert(0, tagController);
     });
   }
 
@@ -375,6 +428,29 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
         throw Exception('No valid images available');
       }
 
+      final finalImageTags = <Map<String, dynamic>>[
+        ..._existingImageTagControllers.map(
+          (controller) => <String, dynamic>{
+            'tags': controller.text
+                .split(',')
+                .map((tag) => tag.trim())
+                .where((tag) => tag.isNotEmpty)
+                .toSet()
+                .toList(),
+          },
+        ),
+        ..._newImageTagControllers.map(
+          (controller) => <String, dynamic>{
+            'tags': controller.text
+                .split(',')
+                .map((tag) => tag.trim())
+                .where((tag) => tag.isNotEmpty)
+                .toSet()
+                .toList(),
+          },
+        ),
+      ];
+
       final promptData = <String, dynamic>{
         'title': title,
         'aiModel': _selectedAiModel,
@@ -383,6 +459,7 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
         'prompt': _promptController.text.trim(),
         'tags': _parseTags(),
         'imageUrls': finalImageUrls,
+        'imageTags': finalImageTags,
         'coverImage': finalImageUrls.first,
         'isFeatured': _isFeatured,
         'isTrending': _isTrending,
@@ -792,72 +869,90 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
   }
 
   Widget _buildExistingImagesGrid() {
-    return GridView.builder(
+    return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: _existingImageUrls.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
+      separatorBuilder: (_, _) => const SizedBox(height: 14),
       itemBuilder: (context, index) {
-        return Stack(
-          fit: StackFit.expand,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.network(
-                _existingImageUrls[index],
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
+            AspectRatio(
+              aspectRatio: 3 / 2,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Image.network(
+                      _existingImageUrls[index],
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
 
-                  return Container(
-                    color: AppColors.primarySoft,
-                    alignment: Alignment.center,
-                    child: const CircularProgressIndicator(strokeWidth: 2),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppColors.primarySoft,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.broken_image_rounded,
-                      color: AppColors.primary,
-                    ),
-                  );
-                },
-              ),
-            ),
-            if (index == 0) _buildCoverBadge(),
-            Positioned(
-              top: 4,
-              left: 4,
-              child: Material(
-                color: Colors.black54,
-                shape: const CircleBorder(),
-                child: InkWell(
-                  onTap: index == 0
-                      ? null
-                      : () => _makeExistingImageCover(index),
-                  customBorder: const CircleBorder(),
-                  child: const Padding(
-                    padding: EdgeInsets.all(5),
-                    child: Icon(
-                      Icons.star_rounded,
-                      size: 16,
-                      color: Colors.white,
+                        return Container(
+                          color: AppColors.primarySoft,
+                          alignment: Alignment.center,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: AppColors.primarySoft,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.broken_image_rounded,
+                            color: AppColors.primary,
+                          ),
+                        );
+                      },
                     ),
                   ),
-                ),
+                  if (index == 0) _buildCoverBadge(),
+                  Positioned(
+                    top: 4,
+                    left: 4,
+                    child: Material(
+                      color: Colors.black54,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        onTap: index == 0
+                            ? null
+                            : () => _makeExistingImageCover(index),
+                        customBorder: const CircleBorder(),
+                        child: const Padding(
+                          padding: EdgeInsets.all(5),
+                          child: Icon(
+                            Icons.star_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: _buildRemoveButton(
+                      () => _removeExistingImage(index),
+                    ),
+                  ),
+                ],
               ),
             ),
-            Positioned(
-              top: 4,
-              right: 4,
-              child: _buildRemoveButton(() => _removeExistingImage(index)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _existingImageTagControllers[index],
+              enabled: !_isSaving,
+              decoration: const InputDecoration(
+                labelText: 'Image Search Tags',
+                hintText: 'e.g. allu arjun, pushpa',
+                prefixIcon: Icon(Icons.sell_rounded),
+              ),
             ),
           ],
         );
@@ -866,63 +961,77 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
   }
 
   Widget _buildNewImagesGrid() {
-    return GridView.builder(
+    return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: _newImages.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
+      separatorBuilder: (_, _) => const SizedBox(height: 14),
       itemBuilder: (context, index) {
         final isCover = _existingImageUrls.isEmpty && index == 0;
 
-        return Stack(
-          fit: StackFit.expand,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.file(
-                File(_newImages[index].path),
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppColors.primarySoft,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.broken_image_rounded,
-                      color: AppColors.primary,
-                    ),
-                  );
-                },
-              ),
-            ),
-            if (isCover) _buildCoverBadge(),
-            Positioned(
-              top: 4,
-              left: 4,
-              child: Material(
-                color: Colors.black54,
-                shape: const CircleBorder(),
-                child: InkWell(
-                  onTap: isCover ? null : () => _makeNewImageCover(index),
-                  customBorder: const CircleBorder(),
-                  child: const Padding(
-                    padding: EdgeInsets.all(5),
-                    child: Icon(
-                      Icons.star_rounded,
-                      size: 16,
-                      color: Colors.white,
+            AspectRatio(
+              aspectRatio: 3 / 2,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Image.file(
+                      File(_newImages[index].path),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: AppColors.primarySoft,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.broken_image_rounded,
+                            color: AppColors.primary,
+                          ),
+                        );
+                      },
                     ),
                   ),
-                ),
+                  if (isCover) _buildCoverBadge(),
+                  Positioned(
+                    top: 4,
+                    left: 4,
+                    child: Material(
+                      color: Colors.black54,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        onTap: isCover ? null : () => _makeNewImageCover(index),
+                        customBorder: const CircleBorder(),
+                        child: const Padding(
+                          padding: EdgeInsets.all(5),
+                          child: Icon(
+                            Icons.star_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: _buildRemoveButton(() => _removeNewImage(index)),
+                  ),
+                ],
               ),
             ),
-            Positioned(
-              top: 4,
-              right: 4,
-              child: _buildRemoveButton(() => _removeNewImage(index)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _newImageTagControllers[index],
+              enabled: !_isSaving,
+              decoration: const InputDecoration(
+                labelText: 'Image Search Tags',
+                hintText: 'e.g. prabhas, salaar',
+                prefixIcon: Icon(Icons.sell_rounded),
+              ),
             ),
           ],
         );

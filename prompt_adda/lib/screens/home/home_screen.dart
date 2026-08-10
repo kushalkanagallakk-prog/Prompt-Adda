@@ -137,11 +137,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       (tag) => tag.toLowerCase().contains(cleanQuery),
                     );
 
+                    final matchesImageTags = prompt.imageTags.any(
+                      (tagsForImage) => tagsForImage.any(
+                        (tag) => tag.toLowerCase().contains(cleanQuery),
+                      ),
+                    );
+
                     return matchesTitle ||
                         matchesCategory ||
                         matchesDescription ||
                         matchesPrompt ||
-                        matchesTags;
+                        matchesTags ||
+                        matchesImageTags;
                   }).toList();
 
                   const hiddenTrendingTitles = {
@@ -184,79 +191,83 @@ class _HomeScreenState extends State<HomeScreen> {
                       : trendingPrompts;
 
                   return RefreshIndicator(
-  color: AppColors.primary,
-  onRefresh: () async {
-    await Future.delayed(const Duration(milliseconds: 600));
+                    color: AppColors.primary,
+                    onRefresh: () async {
+                      await Future.delayed(const Duration(milliseconds: 600));
 
-    if (mounted) {
-      setState(() {});
-    }
-  },
-  child: SingleChildScrollView(
-    physics: const AlwaysScrollableScrollPhysics(),
-    padding: const EdgeInsets.fromLTRB(20, 18, 20, 125),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const _TopHeader(),
-                        const SizedBox(height: 22),
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 125),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const _TopHeader(),
+                          const SizedBox(height: 22),
 
-                        _SearchBar(
-                          controller: _searchController,
-                          onChanged: (value) {
-                            setState(() {
-                              _searchQuery = value;
-                            });
-                          },
-                          onClear: _clearSearch,
-                        ),
+                          _SearchBar(
+                            controller: _searchController,
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value;
+                              });
+                            },
+                            onClear: _clearSearch,
+                          ),
 
-                        const SizedBox(height: 36),
+                          const SizedBox(height: 36),
 
-                        if (!isSearching && allPrompts.isNotEmpty) ...[
-                          if (featuredPrompts.isNotEmpty) ...[
-                            HeroCarousel(prompts: featuredPrompts),
+                          if (!isSearching && allPrompts.isNotEmpty) ...[
+                            if (featuredPrompts.isNotEmpty) ...[
+                              HeroCarousel(prompts: featuredPrompts),
+                              const SizedBox(height: 30),
+                            ],
+
+                            _SectionHeader(
+                              title: 'Recently Added',
+                              actionText: 'View all',
+                              onTap: () {},
+                            ),
+                            const SizedBox(height: 16),
+                            const RecentlyAdded(),
+                            const SizedBox(height: 30),
+
+                            _SectionHeader(
+                              title: 'Featured Collections',
+                              actionText: 'Explore',
+                              onTap: () {},
+                            ),
+                            const SizedBox(height: 16),
+                            const FeaturedCollections(),
                             const SizedBox(height: 30),
                           ],
 
                           _SectionHeader(
-                            title: 'Recently Added',
-                            actionText: 'View all',
-                            onTap: () {},
+                            title: isSearching
+                                ? 'Search Results (${displayedPrompts.length})'
+                                : 'Trending Prompts',
+                            actionText: isSearching ? 'Clear' : 'View all',
+                            onTap: () {
+                              if (isSearching) {
+                                _clearSearch();
+                              }
+                            },
                           ),
-                          const SizedBox(height: 16),
-                          const RecentlyAdded(),
-                          const SizedBox(height: 30),
 
-                          _SectionHeader(
-                            title: 'Featured Collections',
-                            actionText: 'Explore',
-                            onTap: () {},
-                          ),
-                          const SizedBox(height: 16),
-                          const FeaturedCollections(),
-                          const SizedBox(height: 30),
+                          const SizedBox(height: 18),
+
+                          if (displayedPrompts.isEmpty)
+                            const _EmptySearchResult()
+                          else
+                            _TrendingList(
+                              prompts: displayedPrompts,
+                              searchQuery: isSearching ? cleanQuery : '',
+                            ),
                         ],
-
-                        _SectionHeader(
-                          title: isSearching
-                              ? 'Search Results (${displayedPrompts.length})'
-                              : 'Trending Prompts',
-                          actionText: isSearching ? 'Clear' : 'View all',
-                          onTap: () {
-                            if (isSearching) {
-                              _clearSearch();
-                            }
-                          },
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        if (displayedPrompts.isEmpty)
-                          const _EmptySearchResult()
-                        else
-                          _TrendingList(prompts: displayedPrompts),
-                      ],
+                      ),
                     ),
                   );
                 },
@@ -480,9 +491,10 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _TrendingList extends StatelessWidget {
-  const _TrendingList({required this.prompts});
+  const _TrendingList({required this.prompts, this.searchQuery = ''});
 
   final List<PromptModel> prompts;
+  final String searchQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -492,7 +504,11 @@ class _TrendingList extends StatelessWidget {
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 18),
-          child: _PremiumPromptCard(prompt: prompt, index: index),
+          child: _PremiumPromptCard(
+            prompt: prompt,
+            index: index,
+            searchQuery: searchQuery,
+          ),
         );
       }),
     );
@@ -500,10 +516,15 @@ class _TrendingList extends StatelessWidget {
 }
 
 class _PremiumPromptCard extends StatelessWidget {
-  const _PremiumPromptCard({required this.prompt, required this.index});
+  const _PremiumPromptCard({
+    required this.prompt,
+    required this.index,
+    this.searchQuery = '',
+  });
 
   final PromptModel prompt;
   final int index;
+  final String searchQuery;
 
   static const List<List<Color>> _cardGradients = [
     [Color(0xFF5B36C9), Color(0xFF8E5CE6)],
@@ -516,6 +537,16 @@ class _PremiumPromptCard extends StatelessWidget {
     return _cardGradients[index % _cardGradients.length];
   }
 
+  String? get _displayImageUrl {
+    if (searchQuery.trim().isEmpty) {
+      return prompt.coverImage;
+    }
+
+    return prompt.imageForSearchQuery(searchQuery);
+  }
+
+  String get _heroTag => 'trending-prompt-${prompt.id}-$index';
+
   void _openPrompt(BuildContext context) {
     if (prompt.isPremium) {
       showPremiumPromptDialog(context);
@@ -524,7 +555,9 @@ class _PremiumPromptCard extends StatelessWidget {
 
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => PromptDetailsScreen(prompt: prompt)),
+      MaterialPageRoute(
+        builder: (_) => PromptDetailsScreen(prompt: prompt, heroTag: _heroTag),
+      ),
     );
   }
 
@@ -581,6 +614,8 @@ Shared from Prompt Adda
                   prompt: prompt,
                   gradient: _gradient,
                   index: index,
+                  heroTag: _heroTag,
+                  imageUrlOverride: _displayImageUrl,
                 ),
               ),
               Padding(
@@ -682,6 +717,7 @@ Shared from Prompt Adda
                           child: _PromptActionButton(
                             icon: Icons.copy_all_rounded,
                             label: 'Copy',
+                            animateSuccess: true,
                             onTap: () {
                               Clipboard.setData(
                                 ClipboardData(text: prompt.prompt),
@@ -720,52 +756,106 @@ Shared from Prompt Adda
   }
 }
 
-class _PromptActionButton extends StatelessWidget {
+class _PromptActionButton extends StatefulWidget {
   const _PromptActionButton({
     required this.icon,
     required this.label,
     required this.onTap,
     this.isPrimary = false,
+    this.animateSuccess = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final bool isPrimary;
+  final bool animateSuccess;
+
+  @override
+  State<_PromptActionButton> createState() => _PromptActionButtonState();
+}
+
+class _PromptActionButtonState extends State<_PromptActionButton> {
+  bool _isSuccess = false;
+
+  Future<void> _handleTap() async {
+    widget.onTap();
+
+    if (!widget.animateSuccess || _isSuccess) {
+      return;
+    }
+
+    setState(() {
+      _isSuccess = true;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 1400));
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSuccess = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: isPrimary
-          ? AppColors.primary
-          : AppColors.primarySoft.withValues(alpha: 0.75),
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
+    final isPrimary = widget.isPrimary;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: _isSuccess
+            ? AppColors.success
+            : isPrimary
+            ? AppColors.primary
+            : AppColors.primarySoft.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(14),
-        child: SizedBox(
-          height: 46,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: isPrimary ? Colors.white : AppColors.primary,
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isPrimary ? Colors.white : AppColors.primary,
-                  ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: _handleTap,
+          borderRadius: BorderRadius.circular(14),
+          child: SizedBox(
+            height: 46,
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(scale: animation, child: child),
+                  );
+                },
+                child: Row(
+                  key: ValueKey<bool>(_isSuccess),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _isSuccess ? Icons.check_rounded : widget.icon,
+                      size: 18,
+                      color: _isSuccess || isPrimary
+                          ? Colors.white
+                          : AppColors.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _isSuccess ? 'Copied' : widget.label,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _isSuccess || isPrimary
+                            ? Colors.white
+                            : AppColors.primary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -778,15 +868,19 @@ class _PromptVisualHeader extends StatelessWidget {
     required this.prompt,
     required this.gradient,
     required this.index,
+    required this.heroTag,
+    this.imageUrlOverride,
   });
 
   final PromptModel prompt;
   final List<Color> gradient;
   final int index;
+  final String heroTag;
+  final String? imageUrlOverride;
 
   @override
   Widget build(BuildContext context) {
-    final coverImage = prompt.coverImage;
+    final coverImage = imageUrlOverride ?? prompt.coverImage;
     final imageCount = prompt.imageUrls.length;
 
     return AspectRatio(
@@ -800,28 +894,34 @@ class _PromptVisualHeader extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (coverImage != null)
-              CachedNetworkImage(
-                imageUrl: coverImage,
-                fit: BoxFit.cover,
-                placeholder: (context, url) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: gradient,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
-                    ),
-                  );
-                },
-                errorWidget: (context, url, error) {
-                  return _buildFallback();
-                },
+              Hero(
+                tag: heroTag,
+                child: Material(
+                  color: Colors.transparent,
+                  child: CachedNetworkImage(
+                    imageUrl: coverImage,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: gradient,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      );
+                    },
+                    errorWidget: (context, url, error) {
+                      return _buildFallback();
+                    },
+                  ),
+                ),
               )
             else
               _buildFallback(),

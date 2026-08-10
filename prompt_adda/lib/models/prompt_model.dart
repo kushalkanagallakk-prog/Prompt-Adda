@@ -10,6 +10,7 @@ class PromptModel {
   final List<String> tags;
   final IconData icon;
   final List<String> imageUrls;
+  final List<List<String>> imageTags;
 
   final bool isFeatured;
   final bool isTrending;
@@ -26,6 +27,28 @@ class PromptModel {
     return imageUrls.first;
   }
 
+  String? imageForSearchQuery(String query) {
+    final cleanQuery = query.trim().toLowerCase();
+
+    if (cleanQuery.isEmpty) {
+      return coverImage;
+    }
+
+    for (var index = 0; index < imageTags.length; index++) {
+      final tagsForImage = imageTags[index];
+
+      final matches = tagsForImage.any(
+        (tag) => tag.toLowerCase().contains(cleanQuery),
+      );
+
+      if (matches && index < imageUrls.length) {
+        return imageUrls[index];
+      }
+    }
+
+    return coverImage;
+  }
+
   const PromptModel({
     required this.id,
     required this.title,
@@ -39,6 +62,7 @@ class PromptModel {
     this.isPremium = false,
     this.createdAt,
     this.imageUrls = const [],
+    this.imageTags = const [],
     this.viewCount = 0,
     this.copyCount = 0,
     this.shareCount = 0,
@@ -59,6 +83,7 @@ class PromptModel {
       description: data['description']?.toString() ?? '',
       prompt: data['prompt']?.toString() ?? '',
       imageUrls: _parseImageUrls(data),
+      imageTags: _parseImageTags(data),
       tags: rawTags is List
           ? rawTags.map((tag) => tag.toString()).toList()
           : <String>[],
@@ -91,6 +116,29 @@ class PromptModel {
     }
 
     return <String>[];
+  }
+
+  static List<List<String>> _parseImageTags(Map<String, dynamic> data) {
+    final rawImageTags = data['imageTags'];
+
+    if (rawImageTags is! List) {
+      return <List<String>>[];
+    }
+
+    return rawImageTags.map<List<String>>((item) {
+      if (item is Map) {
+        final rawTags = item['tags'];
+
+        if (rawTags is List) {
+          return rawTags
+              .map((tag) => tag.toString().trim())
+              .where((tag) => tag.isNotEmpty)
+              .toList();
+        }
+      }
+
+      return <String>[];
+    }).toList();
   }
 
   static int _parseCount(dynamic value) {
