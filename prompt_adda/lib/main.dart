@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'screens/splash/splash_screen.dart';
 import 'services/notification_service.dart';
 import 'services/theme_service.dart';
+import 'services/auth_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -19,6 +20,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  AuthService.startUserTracking();
 
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
