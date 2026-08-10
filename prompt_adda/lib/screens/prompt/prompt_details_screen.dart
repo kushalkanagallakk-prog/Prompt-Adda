@@ -10,6 +10,7 @@ import '../../services/favorites_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/prompt_service.dart';
+import '../../widgets/discussion_section.dart';
 
 class PromptDetailsScreen extends StatefulWidget {
   final PromptModel prompt;
@@ -225,6 +226,8 @@ $playStoreLink
                     _buildDescriptionCard(),
                     const SizedBox(height: 22),
                     _buildPromptSection(),
+                    const SizedBox(height: 30),
+                    DiscussionSection(promptId: prompt.id),
                   ],
                 ),
               ),

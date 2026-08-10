@@ -25,6 +25,10 @@ class AdminAuthService {
     return _adminUids.contains(uid);
   }
 
+  static bool isAdminUid(String uid) {
+    return _adminUids.contains(uid);
+  }
+
   static Stream<User?> authStateChanges() {
     return _auth.authStateChanges();
   }
