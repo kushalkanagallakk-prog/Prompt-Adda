@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../models/comment_model.dart';
+import '../models/reply_model.dart';
 import '../services/admin_auth_service.dart';
 import '../services/auth_service.dart';
 import '../services/comment_service.dart';
+import '../services/reply_service.dart';
 
 class DiscussionSection extends StatefulWidget {
   const DiscussionSection({super.key, required this.promptId});
@@ -20,54 +22,86 @@ class _DiscussionSectionState extends State<DiscussionSection> {
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
 
+  final Map<String, TextEditingController> _replyControllers =
+      <String, TextEditingController>{};
+
+  final Set<String> _expandedReplies = <String>{};
+  final Set<String> _postingReplies = <String>{};
+
   bool _isPosting = false;
+  String? _replyingToCommentId;
 
   @override
   void dispose() {
     _commentController.dispose();
     _commentFocusNode.dispose();
+
+    for (final controller in _replyControllers.values) {
+      controller.dispose();
+    }
+
     super.dispose();
   }
 
-  Future<void> _signIn() async {
+  TextEditingController _replyController(String commentId) {
+    return _replyControllers.putIfAbsent(
+      commentId,
+      () => TextEditingController(),
+    );
+  }
+
+  Future<bool> _signIn() async {
     try {
       await AuthService.signInWithGoogle();
 
-      if (!mounted) return;
+      if (!mounted) return false;
 
       setState(() {});
 
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            behavior: SnackBarBehavior.floating,
-            content: Text('Signed in. You can join the discussion now.'),
-          ),
-        );
+      final isSignedIn = FirebaseAuth.instance.currentUser != null;
+
+      if (isSignedIn) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text('Signed in successfully'),
+            ),
+          );
+      }
+
+      return isSignedIn;
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted) return false;
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
           const SnackBar(
             behavior: SnackBarBehavior.floating,
-            content: Text('Google sign-in cancelled or failed.'),
+            content: Text('Google sign-in cancelled or failed'),
           ),
         );
+
+      return false;
     }
   }
 
   Future<void> _submitComment() async {
     if (_isPosting) return;
 
-    final user = FirebaseAuth.instance.currentUser;
+    var user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      await _signIn();
-      return;
+      final signedIn = await _signIn();
+
+      if (!signedIn) return;
+
+      user = FirebaseAuth.instance.currentUser;
     }
+
+    if (user == null) return;
 
     final text = _commentController.text.trim();
 
@@ -108,6 +142,97 @@ class _DiscussionSectionState extends State<DiscussionSection> {
       if (mounted) {
         setState(() {
           _isPosting = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _startReply(CommentModel comment, User? currentUser) async {
+    if (currentUser == null) {
+      final signedIn = await _signIn();
+
+      if (!signedIn || !mounted) return;
+    }
+
+    setState(() {
+      _replyingToCommentId = comment.id;
+      _expandedReplies.add(comment.id);
+    });
+  }
+
+  void _cancelReply(String commentId) {
+    _replyController(commentId).clear();
+
+    setState(() {
+      if (_replyingToCommentId == commentId) {
+        _replyingToCommentId = null;
+      }
+    });
+  }
+
+  Future<void> _submitReply(CommentModel comment) async {
+    if (_postingReplies.contains(comment.id)) return;
+
+    var user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      final signedIn = await _signIn();
+
+      if (!signedIn) return;
+
+      user = FirebaseAuth.instance.currentUser;
+    }
+
+    if (user == null) return;
+
+    final controller = _replyController(comment.id);
+    final text = controller.text.trim();
+
+    if (text.isEmpty) return;
+
+    setState(() {
+      _postingReplies.add(comment.id);
+    });
+
+    try {
+      await ReplyService.addReply(
+        promptId: widget.promptId,
+        commentId: comment.id,
+        text: text,
+      );
+
+      controller.clear();
+
+      if (!mounted) return;
+
+      setState(() {
+        _replyingToCommentId = null;
+        _expandedReplies.add(comment.id);
+      });
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Reply posted'),
+          ),
+        );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Unable to post reply: $error'),
+          ),
+        );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _postingReplies.remove(comment.id);
         });
       }
     }
@@ -174,6 +299,71 @@ class _DiscussionSectionState extends State<DiscussionSection> {
     }
   }
 
+  Future<void> _deleteReply({
+    required CommentModel comment,
+    required ReplyModel reply,
+  }) async {
+    final shouldDelete =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text(
+                'Delete reply?',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+              ),
+              content: Text(
+                'This reply will be permanently removed.',
+                style: GoogleFonts.poppins(),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Delete'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (!shouldDelete) return;
+
+    try {
+      await ReplyService.deleteReply(
+        promptId: widget.promptId,
+        commentId: comment.id,
+        replyId: reply.id,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Reply deleted'),
+          ),
+        );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Unable to delete reply: $error'),
+          ),
+        );
+    }
+  }
+
   String _timeAgo(DateTime? dateTime) {
     if (dateTime == null) {
       return 'Just now';
@@ -181,11 +371,7 @@ class _DiscussionSectionState extends State<DiscussionSection> {
 
     final difference = DateTime.now().difference(dateTime);
 
-    if (difference.isNegative) {
-      return 'Just now';
-    }
-
-    if (difference.inSeconds < 60) {
+    if (difference.isNegative || difference.inSeconds < 60) {
       return 'Just now';
     }
 
@@ -235,6 +421,27 @@ class _DiscussionSectionState extends State<DiscussionSection> {
     );
   }
 
+  Widget _adminBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF7042D8), Color(0xFFA65DE2)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        'ADMIN',
+        style: GoogleFonts.poppins(
+          fontSize: 8,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.35,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
   Widget _buildComposer(User? user) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -255,10 +462,10 @@ class _DiscussionSectionState extends State<DiscussionSection> {
         ),
         child: Column(
           children: [
-            Icon(
+            const Icon(
               Icons.forum_outlined,
               size: 30,
-              color: isDark ? const Color(0xFFBFA7FF) : const Color(0xFF7042D8),
+              color: Color(0xFF7042D8),
             ),
             const SizedBox(height: 10),
             Text(
@@ -385,12 +592,324 @@ class _DiscussionSectionState extends State<DiscussionSection> {
     );
   }
 
+  Widget _buildReplyComposer({
+    required CommentModel comment,
+    required User? currentUser,
+  }) {
+    if (_replyingToCommentId != comment.id || currentUser == null) {
+      return const SizedBox.shrink();
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final controller = _replyController(comment.id);
+    final isPosting = _postingReplies.contains(comment.id);
+
+    final name = currentUser.displayName?.trim().isNotEmpty == true
+        ? currentUser.displayName!.trim()
+        : 'You';
+
+    return Container(
+      margin: const EdgeInsets.only(top: 10, bottom: 5),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.045)
+            : const Color(0xFFF8F5FC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.07)
+              : const Color(0xFFE9E1F4),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(
+                'Replying to ${comment.userName}',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF7042D8),
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                onTap: () => _cancelReply(comment.id),
+                borderRadius: BorderRadius.circular(20),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.close_rounded, size: 18),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _avatar(photoUrl: currentUser.photoURL, name: name, radius: 15),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  minLines: 1,
+                  maxLines: 4,
+                  maxLength: 500,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    hintText: 'Write a reply...',
+                    counterText: '',
+                    isDense: true,
+                    filled: true,
+                    fillColor: isDark
+                        ? Colors.white.withValues(alpha: 0.04)
+                        : Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 11,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF8C5BEA),
+                        width: 1.2,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 7),
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: FilledButton(
+                  onPressed: isPosting ? null : () => _submitReply(comment),
+                  style: FilledButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: isPosting
+                      ? const SizedBox(
+                          width: 17,
+                          height: 17,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.arrow_upward_rounded, size: 19),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReplyCard({
+    required CommentModel comment,
+    required ReplyModel reply,
+    required User? currentUser,
+  }) {
+    final isAdminReply = AdminAuthService.isAdminUid(reply.userId);
+
+    final isOwner = currentUser != null && currentUser.uid == reply.userId;
+
+    final canDelete =
+        currentUser != null && (isOwner || AdminAuthService.isCurrentUserAdmin);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 13),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _avatar(photoUrl: reply.userPhoto, name: reply.userName, radius: 15),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        reply.userName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    if (isAdminReply) ...[
+                      const SizedBox(width: 6),
+                      _adminBadge(),
+                    ],
+                    const Spacer(),
+                    if (canDelete)
+                      PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        iconSize: 17,
+                        tooltip: 'Reply options',
+                        onSelected: (value) {
+                          if (value == 'delete') {
+                            _deleteReply(comment: comment, reply: reply);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem<String>(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline_rounded, size: 19),
+                                SizedBox(width: 10),
+                                Text('Delete'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  reply.text,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12.2,
+                    height: 1.5,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.80),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _timeAgo(reply.createdAt),
+                  style: GoogleFonts.poppins(
+                    fontSize: 9.5,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.45),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReplies({
+    required CommentModel comment,
+    required User? currentUser,
+  }) {
+    return StreamBuilder<List<ReplyModel>>(
+      stream: ReplyService.watchReplies(
+        promptId: widget.promptId,
+        commentId: comment.id,
+      ),
+      builder: (context, snapshot) {
+        final replies = snapshot.data ?? <ReplyModel>[];
+        final isExpanded = _expandedReplies.contains(comment.id);
+
+        return Padding(
+          padding: const EdgeInsets.only(left: 2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6),
+                  child: SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 1.7),
+                  ),
+                ),
+
+              if (replies.isNotEmpty)
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      if (isExpanded) {
+                        _expandedReplies.remove(comment.id);
+                      } else {
+                        _expandedReplies.add(comment.id);
+                      }
+                    });
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 0,
+                      vertical: 4,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.subdirectory_arrow_right_rounded,
+                    size: 17,
+                  ),
+                  label: Text(
+                    isExpanded
+                        ? 'Hide replies'
+                        : replies.length == 1
+                        ? 'View 1 reply'
+                        : 'View ${replies.length} replies',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+              if (isExpanded)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Column(
+                    children: replies
+                        .map(
+                          (reply) => _buildReplyCard(
+                            comment: comment,
+                            reply: reply,
+                            currentUser: currentUser,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+
+              _buildReplyComposer(comment: comment, currentUser: currentUser),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildCommentCard({
     required CommentModel comment,
     required User? currentUser,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     final isAdminComment = AdminAuthService.isAdminUid(comment.userId);
 
     final isOwner = currentUser != null && currentUser.uid == comment.userId;
@@ -399,7 +918,7 @@ class _DiscussionSectionState extends State<DiscussionSection> {
         currentUser != null && (isOwner || AdminAuthService.isCurrentUserAdmin);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.only(bottom: 22),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -414,53 +933,29 @@ class _DiscussionSectionState extends State<DiscussionSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Flexible(
-                      child: Text(
-                        comment.userName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              comment.userName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (isAdminComment) ...[
+                            const SizedBox(width: 7),
+                            _adminBadge(),
+                          ],
+                        ],
                       ),
                     ),
-                    if (isAdminComment) ...[
-                      const SizedBox(width: 7),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF7042D8), Color(0xFFA65DE2)],
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'ADMIN',
-                          style: GoogleFonts.poppins(
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.35,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(width: 8),
-                    Text(
-                      _timeAgo(comment.createdAt),
-                      style: GoogleFonts.poppins(
-                        fontSize: 10.5,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.48),
-                      ),
-                    ),
-                    const Spacer(),
                     if (canDelete)
                       PopupMenuButton<String>(
                         padding: EdgeInsets.zero,
@@ -486,18 +981,52 @@ class _DiscussionSectionState extends State<DiscussionSection> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 4),
                 Text(
                   comment.text,
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     height: 1.55,
                     fontWeight: FontWeight.w400,
-                    color: Theme.of(context).colorScheme.onSurface.withValues(
-                      alpha: isDark ? 0.88 : 0.82,
-                    ),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.82),
                   ),
                 ),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    Text(
+                      _timeAgo(comment.createdAt),
+                      style: GoogleFonts.poppins(
+                        fontSize: 10.5,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.48),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    InkWell(
+                      onTap: () => _startReply(comment, currentUser),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 3,
+                        ),
+                        child: Text(
+                          'Reply',
+                          style: GoogleFonts.poppins(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF7042D8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                _buildReplies(comment: comment, currentUser: currentUser),
               ],
             ),
           ),
@@ -511,7 +1040,8 @@ class _DiscussionSectionState extends State<DiscussionSection> {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
-        final currentUser = authSnapshot.data;
+        final currentUser =
+            authSnapshot.data ?? FirebaseAuth.instance.currentUser;
 
         return StreamBuilder<List<CommentModel>>(
           stream: CommentService.watchComments(widget.promptId),
