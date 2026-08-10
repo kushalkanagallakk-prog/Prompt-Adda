@@ -190,6 +190,29 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? searchResults
                       : trendingPrompts;
 
+                  final topPicks = List<PromptModel>.from(allPrompts)
+                    ..sort((first, second) {
+                      final viewComparison = second.viewCount.compareTo(
+                        first.viewCount,
+                      );
+
+                      if (viewComparison != 0) {
+                        return viewComparison;
+                      }
+
+                      final firstDate =
+                          first.createdAt ??
+                          DateTime.fromMillisecondsSinceEpoch(0);
+
+                      final secondDate =
+                          second.createdAt ??
+                          DateTime.fromMillisecondsSinceEpoch(0);
+
+                      return secondDate.compareTo(firstDate);
+                    });
+
+                  final top10Picks = topPicks.take(10).toList();
+
                   return RefreshIndicator(
                     color: AppColors.primary,
                     onRefresh: () async {
@@ -234,6 +257,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 16),
                             const RecentlyAdded(),
                             const SizedBox(height: 30),
+
+                            if (top10Picks.isNotEmpty) ...[
+                              _SectionHeader(
+                                title: 'Top Picks',
+                                actionText: 'Top 10',
+                                onTap: () {},
+                              ),
+                              const SizedBox(height: 16),
+                              _TopPicksList(prompts: top10Picks),
+                              const SizedBox(height: 30),
+                            ],
 
                             _SectionHeader(
                               title: 'Featured Collections',
@@ -486,6 +520,295 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TopPicksList extends StatelessWidget {
+  const _TopPicksList({required this.prompts});
+
+  final List<PromptModel> prompts;
+
+  void _openPrompt(BuildContext context, PromptModel prompt) {
+    if (prompt.isPremium) {
+      showPremiumPromptDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PromptDetailsScreen(prompt: prompt)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return SizedBox(
+      height: 286,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: prompts.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
+        itemBuilder: (context, index) {
+          final prompt = prompts[index];
+          final rank = index + 1;
+
+          final coverImage = prompt.coverImage;
+
+          return SizedBox(
+            width: 198,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _openPrompt(context, prompt),
+                borderRadius: BorderRadius.circular(24),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.055)
+                        : Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : const Color(0xFFE9E1F5),
+                    ),
+                    boxShadow: isDark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: 178,
+                          width: double.infinity,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              if (coverImage != null)
+                                CachedNetworkImage(
+                                  imageUrl: coverImage,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) {
+                                    return Container(
+                                      color: AppColors.primarySoft,
+                                      alignment: Alignment.center,
+                                      child: const CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary,
+                                      ),
+                                    );
+                                  },
+                                  errorWidget: (context, url, error) {
+                                    return _TopPickFallback(prompt: prompt);
+                                  },
+                                )
+                              else
+                                _TopPickFallback(prompt: prompt),
+
+                              const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Color(0x22000000),
+                                      Color(0x05000000),
+                                      Color(0x77000000),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              // #1 - #10 RANK BADGE
+                              Positioned(
+                                top: 12,
+                                left: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: rank <= 3
+                                        ? const Color(0xFF7C4DFF)
+                                        : Colors.black.withValues(alpha: 0.62),
+                                    borderRadius: BorderRadius.circular(30),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.20,
+                                      ),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.14,
+                                        ),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (rank <= 3) ...[
+                                        const Icon(
+                                          Icons.workspace_premium_rounded,
+                                          size: 13,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 4),
+                                      ],
+                                      Text(
+                                        rank <= 3
+                                            ? '#$rank TOP PICK'
+                                            : '#$rank',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.25,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              // VIEW COUNT
+                              Positioned(
+                                right: 12,
+                                bottom: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 9,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.58),
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.visibility_rounded,
+                                        size: 13,
+                                        color: Colors.white,
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        '${prompt.viewCount}',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  prompt.title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13.5,
+                                    height: 1.25,
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.local_fire_department_rounded,
+                                      size: 14,
+                                      color: AppColors.primary,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Expanded(
+                                      child: Text(
+                                        rank <= 3
+                                            ? 'Most viewed'
+                                            : '${prompt.viewCount} views',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.arrow_outward_rounded,
+                                      size: 16,
+                                      color: AppColors.primary,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _TopPickFallback extends StatelessWidget {
+  const _TopPickFallback({required this.prompt});
+
+  final PromptModel prompt;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF6942D8), Color(0xFF9C67E8)],
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Icon(prompt.icon, size: 42, color: Colors.white),
     );
   }
 }
