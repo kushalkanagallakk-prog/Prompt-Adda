@@ -12,8 +12,19 @@ class _AdMobTestBannerState extends State<AdMobTestBanner> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
 
+  static const bool _useProductionAds = bool.fromEnvironment(
+    'USE_PRODUCTION_ADS',
+    defaultValue: false,
+  );
+
   static const String _testBannerAdUnitId =
       'ca-app-pub-3940256099942544/6300978111';
+
+  static const String _productionBannerAdUnitId =
+      'ca-app-pub-2747927305898631/3632188432';
+
+  String get _bannerAdUnitId =>
+      _useProductionAds ? _productionBannerAdUnitId : _testBannerAdUnitId;
 
   @override
   void initState() {
@@ -23,7 +34,7 @@ class _AdMobTestBannerState extends State<AdMobTestBanner> {
 
   void _loadBannerAd() {
     final bannerAd = BannerAd(
-      adUnitId: _testBannerAdUnitId,
+      adUnitId: _bannerAdUnitId,
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
