@@ -53,7 +53,6 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
     'Education',
     'Image AI',
     'Video AI',
-    'Other',
   ];
 
   final List<XFile> _newImages = <XFile>[];
@@ -75,6 +74,7 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
   bool _isTrending = false;
   bool _isPremium = false;
   bool _isVisible = true;
+  bool _wasFeatured = false;
 
   bool _isSaving = false;
   int _uploadedCount = 0;
@@ -118,6 +118,8 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
     _titleController.text = data['title']?.toString() ?? '';
     _descriptionController.text = data['description']?.toString() ?? '';
     _promptController.text = data['prompt']?.toString() ?? '';
+    _isFeatured = data['isFeatured'] == true;
+    _wasFeatured = _isFeatured;
 
     final rawTags = data['tags'];
 
@@ -377,6 +379,50 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
     return false;
   }
 
+  Future<void> _trimHeroCarouselToTen() async {
+  final snapshot = await FirebaseFirestore.instance
+      .collection('prompts')
+      .where('isFeatured', isEqualTo: true)
+      .get();
+
+  if (snapshot.docs.length <= 10) return;
+
+  final docs = [...snapshot.docs];
+
+  DateTime heroDate(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+
+    final featuredAt = data['featuredAt'];
+    if (featuredAt is Timestamp) {
+      return featuredAt.toDate();
+    }
+
+    final createdAt = data['createdAt'];
+    if (createdAt is Timestamp) {
+      return createdAt.toDate();
+    }
+
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  docs.sort(
+    (a, b) => heroDate(b).compareTo(heroDate(a)),
+  );
+
+  final batch = FirebaseFirestore.instance.batch();
+
+  for (final doc in docs.skip(10)) {
+    batch.update(doc.reference, {
+      'isFeatured': false,
+      'featuredAt': null,
+    });
+  }
+
+  await batch.commit();
+}
+
   Future<void> _savePrompt() async {
     final isValid = _formKey.currentState?.validate() ?? false;
 
@@ -386,6 +432,9 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
       _showMessage('Select at least one image');
       return;
     }
+
+    final isNewHeroSelection =
+    _isFeatured && (!widget.isEdit || !_wasFeatured);
 
     final title = _titleController.text.trim();
 
@@ -462,6 +511,10 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
         'imageTags': finalImageTags,
         'coverImage': finalImageUrls.first,
         'isFeatured': _isFeatured,
+        if (isNewHeroSelection)
+        'featuredAt': FieldValue.serverTimestamp(),
+        if (!_isFeatured)
+        'featuredAt': null,
         'isTrending': _isTrending,
         'isPremium': _isPremium,
         'isVisible': _isVisible,
@@ -484,6 +537,14 @@ class _PromptEditorScreenState extends State<PromptEditorScreen> {
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
+
+      if (isNewHeroSelection) {
+  await _trimHeroCarouselToTen();
+}
+
+if (!mounted) return;
+
+Navigator.pop(context, true);
 
       if (!mounted) return;
 

@@ -11,6 +11,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/prompt_service.dart';
 import '../../widgets/discussion_section.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PromptDetailsScreen extends StatefulWidget {
   final PromptModel prompt;
@@ -107,48 +108,65 @@ class _PromptDetailsScreenState extends State<PromptDetailsScreen> {
   }
 
   Future<void> _toggleFavorite() async {
-    if (_isFavoriteLoading) return;
+  if (_isFavoriteLoading) return;
 
-    setState(() {
-      _isFavoriteLoading = true;
-    });
-
-    final isFavorite = await FavoritesService.toggleFavorite(prompt.id);
-
-    if (!mounted) return;
-
-    setState(() {
-      _isFavorite = isFavorite;
-      _isFavoriteLoading = false;
-    });
-
+  if (FirebaseAuth.instance.currentUser == null) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
+        const SnackBar(
           behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          content: Row(
-            children: [
-              Icon(
-                isFavorite
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                isFavorite ? 'Added to favorites!' : 'Removed from favorites',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
+          content: Text('Sign in with Google to save favorites.'),
         ),
       );
+
+    return;
   }
+
+  setState(() {
+    _isFavoriteLoading = true;
+  });
+
+  final isFavorite = await FavoritesService.toggleFavorite(prompt.id);
+
+  if (!mounted) return;
+
+  setState(() {
+    _isFavorite = isFavorite;
+    _isFavoriteLoading = false;
+  });
+
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        content: Row(
+          children: [
+            Icon(
+              isFavorite
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              isFavorite
+                  ? 'Added to favorites!'
+                  : 'Removed from favorites',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+}
 
   Future<void> _copyPrompt(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: prompt.prompt));

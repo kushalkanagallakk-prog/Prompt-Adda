@@ -1,105 +1,249 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'prompt_service.dart';
 
 class FavoritesService {
-  static const String _favoritesKey = 'favorite_prompt_ids';
+  FavoritesService._();
+
+  static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   static final ValueNotifier<Set<String>> favoriteIdsNotifier =
       ValueNotifier<Set<String>>(<String>{});
 
+  static StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _favoritesSubscription;
+
   static bool _isInitialized = false;
+  static String? _activeUid;
+
+  static bool get isSignedIn => _auth.currentUser != null;
+
+  static CollectionReference<Map<String, dynamic>> _favoritesCollection(
+    String uid,
+  ) {
+    return _firestore.collection('users').doc(uid).collection('favorites');
+  }
 
   static Future<void> initialize() async {
     if (_isInitialized) return;
 
-    final favoriteIds = await getFavoriteIds();
-
-    favoriteIdsNotifier.value = favoriteIds;
     _isInitialized = true;
+
+    await _switchUser(_auth.currentUser);
+
+    _auth.authStateChanges().listen((user) {
+      unawaited(_switchUser(user));
+    });
+  }
+
+  static Future<void> _switchUser(User? user) async {
+    await _favoritesSubscription?.cancel();
+    _favoritesSubscription = null;
+
+    _activeUid = user?.uid;
+
+    // Guest / logout = no visible favorites.
+    favoriteIdsNotifier.value = <String>{};
+
+    if (user == null) {
+      return;
+    }
+
+    final uid = user.uid;
+
+    _favoritesSubscription = _favoritesCollection(uid).snapshots().listen(
+      (snapshot) {
+        if (_activeUid != uid) return;
+
+        favoriteIdsNotifier.value = snapshot.docs
+            .map((document) => document.id)
+            .toSet();
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('Favorites stream error: $error');
+
+        if (_activeUid == uid) {
+          favoriteIdsNotifier.value = <String>{};
+        }
+      },
+    );
   }
 
   static Future<Set<String>> getFavoriteIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    final ids = prefs.getStringList(_favoritesKey) ?? <String>[];
+    await initialize();
 
-    return ids.toSet();
+    if (_auth.currentUser == null) {
+      return <String>{};
+    }
+
+    return Set<String>.from(favoriteIdsNotifier.value);
   }
 
   static bool isFavoriteSync(String promptId) {
+    if (_auth.currentUser == null) {
+      return false;
+    }
+
     return favoriteIdsNotifier.value.contains(promptId);
   }
 
   static Future<bool> isFavorite(String promptId) async {
     await initialize();
-    return favoriteIdsNotifier.value.contains(promptId);
+
+    final user = _auth.currentUser;
+
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      final document = await _favoritesCollection(user.uid).doc(promptId).get();
+
+      return document.exists;
+    } catch (error) {
+      debugPrint('Check favorite error: $error');
+      return favoriteIdsNotifier.value.contains(promptId);
+    }
   }
 
   static Future<void> addFavorite(String promptId) async {
     await initialize();
 
-    final currentIds = Set<String>.from(favoriteIdsNotifier.value);
+    final user = _auth.currentUser;
 
-    if (currentIds.contains(promptId)) {
+    if (user == null) {
       return;
     }
 
-    currentIds.add(promptId);
+    final reference = _favoritesCollection(user.uid).doc(promptId);
 
-    await _saveFavorites(currentIds);
+    try {
+      final existing = await reference.get();
 
-    await PromptService.incrementFavoriteCount(promptId, isAdding: true);
+      if (existing.exists) {
+        return;
+      }
+
+      await reference.set({
+        'promptId': promptId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      final updatedIds = Set<String>.from(favoriteIdsNotifier.value)
+        ..add(promptId);
+
+      favoriteIdsNotifier.value = updatedIds;
+
+      await PromptService.incrementFavoriteCount(promptId, isAdding: true);
+    } catch (error) {
+      debugPrint('Add favorite error: $error');
+    }
   }
 
   static Future<void> removeFavorite(String promptId) async {
     await initialize();
 
-    final currentIds = Set<String>.from(favoriteIdsNotifier.value);
+    final user = _auth.currentUser;
 
-    if (!currentIds.contains(promptId)) {
+    if (user == null) {
       return;
     }
 
-    currentIds.remove(promptId);
+    final reference = _favoritesCollection(user.uid).doc(promptId);
 
-    await _saveFavorites(currentIds);
+    try {
+      final existing = await reference.get();
 
-    await PromptService.incrementFavoriteCount(promptId, isAdding: false);
+      if (!existing.exists) {
+        return;
+      }
+
+      await reference.delete();
+
+      final updatedIds = Set<String>.from(favoriteIdsNotifier.value)
+        ..remove(promptId);
+
+      favoriteIdsNotifier.value = updatedIds;
+
+      await PromptService.incrementFavoriteCount(promptId, isAdding: false);
+    } catch (error) {
+      debugPrint('Remove favorite error: $error');
+    }
   }
 
   static Future<bool> toggleFavorite(String promptId) async {
     await initialize();
 
-    final updatedIds = Set<String>.from(favoriteIdsNotifier.value);
+    final user = _auth.currentUser;
 
-    final isNowFavorite = !updatedIds.contains(promptId);
-
-    if (isNowFavorite) {
-      updatedIds.add(promptId);
-    } else {
-      updatedIds.remove(promptId);
+    // Guest cannot favorite.
+    if (user == null) {
+      return false;
     }
 
-    await _saveFavorites(updatedIds);
+    final reference = _favoritesCollection(user.uid).doc(promptId);
 
-    await PromptService.incrementFavoriteCount(
-      promptId,
-      isAdding: isNowFavorite,
-    );
+    try {
+      final existing = await reference.get();
+      final isNowFavorite = !existing.exists;
 
-    return isNowFavorite;
+      if (isNowFavorite) {
+        await reference.set({
+          'promptId': promptId,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await reference.delete();
+      }
+
+      final updatedIds = Set<String>.from(favoriteIdsNotifier.value);
+
+      if (isNowFavorite) {
+        updatedIds.add(promptId);
+      } else {
+        updatedIds.remove(promptId);
+      }
+
+      favoriteIdsNotifier.value = updatedIds;
+
+      await PromptService.incrementFavoriteCount(
+        promptId,
+        isAdding: isNowFavorite,
+      );
+
+      return isNowFavorite;
+    } catch (error) {
+      debugPrint('Toggle favorite error: $error');
+
+      return favoriteIdsNotifier.value.contains(promptId);
+    }
   }
 
   static Future<void> clearFavorites() async {
     await initialize();
-    await _saveFavorites(<String>{});
-  }
 
-  static Future<void> _saveFavorites(Set<String> favoriteIds) async {
-    final prefs = await SharedPreferences.getInstance();
+    final user = _auth.currentUser;
 
-    await prefs.setStringList(_favoritesKey, favoriteIds.toList());
+    if (user == null) {
+      favoriteIdsNotifier.value = <String>{};
+      return;
+    }
 
-    favoriteIdsNotifier.value = Set<String>.from(favoriteIds);
+    try {
+      final snapshot = await _favoritesCollection(user.uid).get();
+
+      for (final document in snapshot.docs) {
+        await document.reference.delete();
+      }
+
+      favoriteIdsNotifier.value = <String>{};
+    } catch (error) {
+      debugPrint('Clear favorites error: $error');
+    }
   }
 }

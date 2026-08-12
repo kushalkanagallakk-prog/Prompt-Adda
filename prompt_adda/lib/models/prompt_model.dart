@@ -16,6 +16,7 @@ class PromptModel {
   final bool isTrending;
   final bool isPremium;
   final DateTime? createdAt;
+  final DateTime? featuredAt;
 
   final int viewCount;
   final int copyCount;
@@ -61,6 +62,7 @@ class PromptModel {
     this.isTrending = false,
     this.isPremium = false,
     this.createdAt,
+    this.featuredAt,
     this.imageUrls = const [],
     this.imageTags = const [],
     this.viewCount = 0,

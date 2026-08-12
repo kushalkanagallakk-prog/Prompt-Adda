@@ -50,11 +50,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "410369849677-8uht6b1dqm6usni1qfsse7aipfb19tnt.apps.googleusercontent.com",
+          "client_id": "410369849677-0ehv8itr6hv3gb15k2psqg311n526je2.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.promptadda.app",
-            "certificate_hash": "6f49e70addddb7ffb4e56c5b6e215f6d4559fd1e"
+            "certificate_hash": "bf554cf982ee3d3f29e2188a986dc510e1fe592f"
           }
         },
         {

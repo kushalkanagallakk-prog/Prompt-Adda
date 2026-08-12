@@ -167,24 +167,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       .toList();
 
                   final featuredPrompts =
-                      allPrompts
-                          .where(
-                            (prompt) =>
-                                prompt.isFeatured &&
-                                prompt.title.trim().toLowerCase() !=
-                                    'instagram viral reel',
-                          )
-                          .toList()
-                        ..sort((first, second) {
-                          final firstDate =
-                              first.createdAt ??
-                              DateTime.fromMillisecondsSinceEpoch(0);
-                          final secondDate =
-                              second.createdAt ??
+                      allPrompts.where((prompt) => prompt.isFeatured).toList()
+                        ..sort((a, b) {
+                          final aDate =
+                              a.featuredAt ??
+                              a.createdAt ??
                               DateTime.fromMillisecondsSinceEpoch(0);
 
-                          return secondDate.compareTo(firstDate);
+                          final bDate =
+                              b.featuredAt ??
+                              b.createdAt ??
+                              DateTime.fromMillisecondsSinceEpoch(0);
+
+                          return bDate.compareTo(aDate);
                         });
+
+                  final heroPrompts = featuredPrompts.take(10).toList();
 
                   final displayedPrompts = isSearching
                       ? searchResults
@@ -245,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                           if (!isSearching && allPrompts.isNotEmpty) ...[
                             if (featuredPrompts.isNotEmpty) ...[
-                              HeroCarousel(prompts: featuredPrompts),
+                              HeroCarousel(prompts: heroPrompts),
                               const SizedBox(height: 30),
                             ],
 
