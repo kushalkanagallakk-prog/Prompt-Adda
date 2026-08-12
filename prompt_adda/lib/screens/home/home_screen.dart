@@ -13,6 +13,7 @@ import 'widgets/recently_added.dart';
 import '../../widgets/premium_badge.dart';
 import '../../widgets/premium_prompt_dialog.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../widgets/admob_test_banner.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -274,6 +275,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 16),
                             const FeaturedCollections(),
+                            const SizedBox(height: 24),
+
+                            const AdMobTestBanner(),
                             const SizedBox(height: 30),
                           ],
 

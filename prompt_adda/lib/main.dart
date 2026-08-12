@@ -8,6 +8,7 @@ import 'screens/splash/splash_screen.dart';
 import 'services/notification_service.dart';
 import 'services/theme_service.dart';
 import 'services/auth_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -18,6 +19,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  MobileAds.instance.initialize();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
