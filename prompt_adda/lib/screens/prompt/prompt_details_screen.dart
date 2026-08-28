@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../services/prompt_service.dart';
 import '../../widgets/discussion_section.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../widgets/admob_medium_rectangle.dart';
 
 class PromptDetailsScreen extends StatefulWidget {
   final PromptModel prompt;
@@ -108,65 +109,61 @@ class _PromptDetailsScreenState extends State<PromptDetailsScreen> {
   }
 
   Future<void> _toggleFavorite() async {
-  if (_isFavoriteLoading) return;
+    if (_isFavoriteLoading) return;
 
-  if (FirebaseAuth.instance.currentUser == null) {
+    if (FirebaseAuth.instance.currentUser == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('Sign in with Google to save favorites.'),
+          ),
+        );
+
+      return;
+    }
+
+    setState(() {
+      _isFavoriteLoading = true;
+    });
+
+    final isFavorite = await FavoritesService.toggleFavorite(prompt.id);
+
+    if (!mounted) return;
+
+    setState(() {
+      _isFavorite = isFavorite;
+      _isFavoriteLoading = false;
+    });
+
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Sign in with Google to save favorites.'),
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          content: Row(
+            children: [
+              Icon(
+                isFavorite
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                isFavorite ? 'Added to favorites!' : 'Removed from favorites',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
         ),
       );
-
-    return;
   }
-
-  setState(() {
-    _isFavoriteLoading = true;
-  });
-
-  final isFavorite = await FavoritesService.toggleFavorite(prompt.id);
-
-  if (!mounted) return;
-
-  setState(() {
-    _isFavorite = isFavorite;
-    _isFavoriteLoading = false;
-  });
-
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        content: Row(
-          children: [
-            Icon(
-              isFavorite
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              isFavorite
-                  ? 'Added to favorites!'
-                  : 'Removed from favorites',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-}
 
   Future<void> _copyPrompt(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: prompt.prompt));
@@ -245,6 +242,10 @@ $playStoreLink
                     const SizedBox(height: 22),
                     _buildPromptSection(),
                     const SizedBox(height: 30),
+
+                    const AdMobMediumRectangle(),
+                    const SizedBox(height: 30),
+
                     DiscussionSection(promptId: prompt.id),
                   ],
                 ),
