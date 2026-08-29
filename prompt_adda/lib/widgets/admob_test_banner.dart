@@ -11,17 +11,17 @@ class AdMobTestBanner extends StatefulWidget {
 class _AdMobTestBannerState extends State<AdMobTestBanner> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  bool _isLoading = false;
+  int _consentRetryCount = 0;
 
   static const bool _useProductionAds = bool.fromEnvironment(
     'USE_PRODUCTION_ADS',
     defaultValue: false,
   );
 
-  // Official Google test banner Ad Unit ID.
   static const String _testBannerAdUnitId =
       'ca-app-pub-3940256099942544/6300978111';
 
-  // Prompt Adda Home production banner Ad Unit ID.
   static const String _productionBannerAdUnitId =
       'ca-app-pub-2747927305898631/3632188432';
 
@@ -35,14 +35,30 @@ class _AdMobTestBannerState extends State<AdMobTestBanner> {
   }
 
   Future<void> _loadBannerAd() async {
+    if (_isLoading || _bannerAd != null) return;
+
     final canRequestAds = await ConsentInformation.instance.canRequestAds();
 
     if (!mounted) return;
 
     if (!canRequestAds) {
-      debugPrint('Home AdMob banner skipped: consent not ready.');
+      debugPrint('Home AdMob banner waiting for consent...');
+
+      if (_consentRetryCount < 30) {
+        _consentRetryCount++;
+
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            _loadBannerAd();
+          }
+        });
+      }
+
       return;
     }
+
+    _consentRetryCount = 0;
+    _isLoading = true;
 
     final bannerAd = BannerAd(
       adUnitId: _bannerAdUnitId,
@@ -58,7 +74,10 @@ class _AdMobTestBannerState extends State<AdMobTestBanner> {
           setState(() {
             _bannerAd = ad as BannerAd;
             _isLoaded = true;
+            _isLoading = false;
           });
+
+          debugPrint('Home AdMob banner loaded.');
         },
         onAdFailedToLoad: (ad, error) {
           debugPrint(
@@ -69,11 +88,17 @@ class _AdMobTestBannerState extends State<AdMobTestBanner> {
           );
 
           ad.dispose();
+
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
         },
       ),
     );
 
-    await bannerAd.load();
+    bannerAd.load();
   }
 
   @override

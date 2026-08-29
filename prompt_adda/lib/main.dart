@@ -22,6 +22,7 @@ Future<void> _setupAdConsent() async {
   final completer = Completer<void>();
 
   final params = ConsentRequestParameters();
+  runApp(const PromptAddaApp());
 
   ConsentInformation.instance.requestConsentInfoUpdate(
     params,
@@ -72,8 +73,6 @@ Future<void> main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  await _setupAdConsent();
-
   AuthService.startUserTracking();
 
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
@@ -83,6 +82,10 @@ Future<void> main() async {
   await ThemeService.initialize();
 
   runApp(const PromptAddaApp());
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(_setupAdConsent());
+  });
 }
 
 class PromptAddaApp extends StatelessWidget {
