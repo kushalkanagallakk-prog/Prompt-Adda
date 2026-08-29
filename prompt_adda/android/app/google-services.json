@@ -58,6 +58,14 @@
           }
         },
         {
+          "client_id": "410369849677-qtnot8jlfa3ujlscnqoc38fq75drnfiq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.promptadda.app",
+            "certificate_hash": "1d252c78bf635131ccb3eeb8cf5717a79a77b788"
+          }
+        },
+        {
           "client_id": "410369849677-akhm72nh2lira3lj3ooj276t1te4jjua.apps.googleusercontent.com",
           "client_type": 3
         }
