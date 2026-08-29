@@ -9,6 +9,7 @@ import 'services/notification_service.dart';
 import 'services/theme_service.dart';
 import 'services/auth_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'dart:async';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -17,12 +18,61 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('Background notification: ${message.messageId}');
 }
 
+Future<void> _setupAdConsent() async {
+  final completer = Completer<void>();
+
+  final params = ConsentRequestParameters();
+
+  ConsentInformation.instance.requestConsentInfoUpdate(
+    params,
+    () {
+      ConsentForm.loadAndShowConsentFormIfRequired((formError) async {
+        if (formError != null) {
+          debugPrint(
+            'UMP consent form error: '
+            '${formError.errorCode} - ${formError.message}',
+          );
+        }
+
+        final canRequestAds = await ConsentInformation.instance.canRequestAds();
+
+        if (canRequestAds) {
+          await MobileAds.instance.initialize();
+        }
+
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      });
+    },
+    (FormError error) async {
+      debugPrint(
+        'UMP consent update error: '
+        '${error.errorCode} - ${error.message}',
+      );
+
+      // Previous valid consent may still allow ads.
+      final canRequestAds = await ConsentInformation.instance.canRequestAds();
+
+      if (canRequestAds) {
+        await MobileAds.instance.initialize();
+      }
+
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+    },
+  );
+
+  await completer.future;
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  MobileAds.instance.initialize();
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  await _setupAdConsent();
 
   AuthService.startUserTracking();
 

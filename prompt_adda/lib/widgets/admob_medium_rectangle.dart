@@ -17,10 +17,10 @@ class _AdMobMediumRectangleState extends State<AdMobMediumRectangle> {
     defaultValue: false,
   );
 
-  // Google test banner ad unit.
+  // Official Google test banner Ad Unit ID.
   static const String _testAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
 
-  // Prompt Details real 300x250 ad unit.
+  // Prompt Details production 300x250 Ad Unit ID.
   static const String _productionAdUnitId =
       'ca-app-pub-2747927305898631/6395621565';
 
@@ -33,7 +33,16 @@ class _AdMobMediumRectangleState extends State<AdMobMediumRectangle> {
     _loadAd();
   }
 
-  void _loadAd() {
+  Future<void> _loadAd() async {
+    final canRequestAds = await ConsentInformation.instance.canRequestAds();
+
+    if (!mounted) return;
+
+    if (!canRequestAds) {
+      debugPrint('Prompt Details AdMob ad skipped: consent not ready.');
+      return;
+    }
+
     final ad = BannerAd(
       adUnitId: _adUnitId,
       request: const AdRequest(),
@@ -63,7 +72,7 @@ class _AdMobMediumRectangleState extends State<AdMobMediumRectangle> {
       ),
     );
 
-    ad.load();
+    await ad.load();
   }
 
   @override

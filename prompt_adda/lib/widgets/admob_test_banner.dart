@@ -17,9 +17,11 @@ class _AdMobTestBannerState extends State<AdMobTestBanner> {
     defaultValue: false,
   );
 
+  // Official Google test banner Ad Unit ID.
   static const String _testBannerAdUnitId =
       'ca-app-pub-3940256099942544/6300978111';
 
+  // Prompt Adda Home production banner Ad Unit ID.
   static const String _productionBannerAdUnitId =
       'ca-app-pub-2747927305898631/3632188432';
 
@@ -32,7 +34,16 @@ class _AdMobTestBannerState extends State<AdMobTestBanner> {
     _loadBannerAd();
   }
 
-  void _loadBannerAd() {
+  Future<void> _loadBannerAd() async {
+    final canRequestAds = await ConsentInformation.instance.canRequestAds();
+
+    if (!mounted) return;
+
+    if (!canRequestAds) {
+      debugPrint('Home AdMob banner skipped: consent not ready.');
+      return;
+    }
+
     final bannerAd = BannerAd(
       adUnitId: _bannerAdUnitId,
       request: const AdRequest(),
@@ -51,7 +62,7 @@ class _AdMobTestBannerState extends State<AdMobTestBanner> {
         },
         onAdFailedToLoad: (ad, error) {
           debugPrint(
-            'AdMob banner failed: '
+            'Home AdMob banner failed: '
             'code=${error.code}, '
             'domain=${error.domain}, '
             'message=${error.message}',
@@ -62,7 +73,7 @@ class _AdMobTestBannerState extends State<AdMobTestBanner> {
       ),
     );
 
-    bannerAd.load();
+    await bannerAd.load();
   }
 
   @override

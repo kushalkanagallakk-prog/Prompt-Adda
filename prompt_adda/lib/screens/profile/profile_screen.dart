@@ -12,6 +12,7 @@ import '../../services/admin_auth_service.dart';
 import '../../services/theme_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -24,6 +25,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _adminTapCount = 0;
   DateTime? _lastAdminTap;
   bool _isGoogleSigningIn = false;
+  bool _privacyOptionsRequired = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPrivacyOptionsRequirement();
+  }
+
+  Future<void> _checkPrivacyOptionsRequirement() async {
+    final status = await ConsentInformation.instance
+        .getPrivacyOptionsRequirementStatus();
+
+    if (!mounted) return;
+
+    setState(() {
+      _privacyOptionsRequired =
+          status == PrivacyOptionsRequirementStatus.required;
+    });
+  }
+
+  void _openPrivacyOptions() {
+    ConsentForm.showPrivacyOptionsForm((formError) {
+      if (formError != null) {
+        debugPrint(
+          'Privacy options error: '
+          '${formError.errorCode} - ${formError.message}',
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(
+                behavior: SnackBarBehavior.floating,
+                content: Text('Unable to open privacy options.'),
+              ),
+            );
+        }
+      }
+
+      _checkPrivacyOptionsRequirement();
+    });
+  }
+
   Future<void> _shareApp() async {
     await SharePlus.instance.share(
       ShareParams(
@@ -280,6 +325,8 @@ https://play.google.com/store/apps/details?id=com.example.prompt_adda
                   onShareApp: _shareApp,
                   onRateApp: _rateApp,
                   onPrivacyPolicy: _openPrivacyPolicy,
+                  showPrivacyOptions: _privacyOptionsRequired,
+                  onPrivacyOptions: _openPrivacyOptions,
                   onContactUs: _contactUs,
                   onAbout: _openAbout,
                 ),
@@ -750,6 +797,8 @@ class _SettingsCard extends StatelessWidget {
     required this.onShareApp,
     required this.onRateApp,
     required this.onPrivacyPolicy,
+    required this.showPrivacyOptions,
+    required this.onPrivacyOptions,
     required this.onContactUs,
     required this.onAbout,
   });
@@ -757,6 +806,8 @@ class _SettingsCard extends StatelessWidget {
   final VoidCallback onShareApp;
   final VoidCallback onRateApp;
   final VoidCallback onPrivacyPolicy;
+  final bool showPrivacyOptions;
+  final VoidCallback onPrivacyOptions;
   final VoidCallback onContactUs;
   final VoidCallback onAbout;
 
@@ -800,12 +851,23 @@ class _SettingsCard extends StatelessWidget {
             title: 'Privacy Policy',
             onTap: onPrivacyPolicy,
           ),
+
+          if (showPrivacyOptions) ...[
+            const _SettingsDivider(),
+            _SettingsTile(
+              icon: Icons.tune_rounded,
+              title: 'Privacy Options',
+              onTap: onPrivacyOptions,
+            ),
+          ],
+
           const _SettingsDivider(),
           _SettingsTile(
             icon: Icons.mail_rounded,
             title: 'Contact Us',
             onTap: onContactUs,
           ),
+
           const _SettingsDivider(),
           _SettingsTile(
             icon: Icons.info_rounded,
@@ -934,45 +996,75 @@ class _PrivacyPolicyScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _PolicySection(
+                        const _PolicySection(
                           title: 'Introduction',
                           content:
-                              'Prompt Adda provides curated AI prompts for educational, creative, and productivity purposes. This policy explains how the app handles user information.',
-                        ),
-                        _PolicySection(
-                          title: 'Information We Collect',
-                          content:
-                              'Prompt Adda does not directly collect personal information such as your name, phone number, address, or passwords. Favorites and app preferences may be stored locally on your device.',
-                        ),
-                        _PolicySection(
-                          title: 'Firebase Services',
-                          content:
-                              'The app uses Firebase Firestore to load prompt content. Firebase may process limited technical information required to deliver the service securely and reliably.',
-                        ),
-                        _PolicySection(
-                          title: 'Third-Party Services',
-                          content:
-                              'The app may use third-party services such as Firebase, Google Play services, analytics, or advertising services in future versions. These services may operate under their own privacy policies.',
-                        ),
-                        _PolicySection(
-                          title: 'Data Security',
-                          content:
-                              'Reasonable technical measures are used to protect app content and related services. However, no internet-based service can guarantee complete security.',
-                        ),
-                        _PolicySection(
-                          title: 'Children’s Privacy',
-                          content:
-                              'Prompt Adda is not intended to knowingly collect personal data from children. Parents or guardians may contact us regarding any concerns.',
-                        ),
-                        _PolicySection(
-                          title: 'Policy Updates',
-                          content:
-                              'This privacy policy may be updated when app features or third-party services change. The latest version will be available inside the app.',
+                              'Prompt Adda provides curated AI prompts for educational, creative, and productivity purposes. This Privacy Policy explains what information may be processed when you use the app and how it is handled.',
                         ),
                         const _PolicySection(
-                          title: 'Contact',
+                          title: 'Account Information',
                           content:
-                              'For privacy-related questions, contact us at promptadda.app@gmail.com.',
+                              'When you choose to sign in with Google, Prompt Adda may receive basic account information such as your name, email address, profile photo, and account identifier. Prompt Adda does not receive or store your Google account password.',
+                        ),
+                        const _PolicySection(
+                          title: 'App Activity and User Content',
+                          content:
+                              'Prompt Adda may store information associated with your account or app activity, including favorites, comments, replies, and usage-related information such as interactions with prompts. This information may be stored using Firebase services so that app features can work across sessions and devices.',
+                        ),
+                        const _PolicySection(
+                          title: 'Firebase Services',
+                          content:
+                              'Prompt Adda uses Google Firebase services including Firebase Authentication and Cloud Firestore for account authentication, app data, and related functionality. Firebase may process technical and device information as necessary to provide these services in accordance with Google\'s privacy practices.',
+                        ),
+                        const _PolicySection(
+                          title: 'Advertising',
+                          content:
+                              'Prompt Adda uses Google AdMob to display advertisements. AdMob and its advertising partners may process device identifiers, advertising identifiers, IP address, approximate location, ad interaction information, and other technical information for advertising, measurement, fraud prevention, and related purposes, subject to applicable law and user consent choices.',
+                        ),
+                        const _PolicySection(
+                          title: 'Consent and Privacy Choices',
+                          content:
+                              'Where required by applicable privacy laws, Prompt Adda uses Google\'s User Messaging Platform (UMP) to request and manage advertising consent. Eligible users may be shown consent choices and, where required, can later review or change those choices through the Privacy Options section in the app.',
+                        ),
+                        const _PolicySection(
+                          title: 'Cloudinary and Media',
+                          content:
+                              'Prompt Adda may use Cloudinary to host and deliver images or other media used by the app. Information processed by Cloudinary is handled according to its own privacy and security practices.',
+                        ),
+                        const _PolicySection(
+                          title: 'Information We Do Not Intentionally Collect',
+                          content:
+                              'Prompt Adda does not intentionally request or store sensitive information such as passwords, payment card details, banking credentials, Aadhaar numbers, or similar government identification information as part of normal app use.',
+                        ),
+                        const _PolicySection(
+                          title: 'Data Sharing',
+                          content:
+                              'Prompt Adda does not sell your personal information. Information may be processed by service providers such as Google Firebase, Google AdMob, Google Play services, and Cloudinary when necessary to provide app functionality, advertising, security, hosting, or related services.',
+                        ),
+                        const _PolicySection(
+                          title: 'Data Retention',
+                          content:
+                              'Account-related and app activity information may be retained for as long as necessary to provide Prompt Adda features, maintain security, comply with legal requirements, and operate the service. Users may contact us to request deletion of information associated with their account where applicable.',
+                        ),
+                        const _PolicySection(
+                          title: 'Data Security',
+                          content:
+                              'Reasonable technical and organizational measures are used to protect information processed through Prompt Adda. However, no internet-based service or electronic storage method can guarantee absolute security.',
+                        ),
+                        const _PolicySection(
+                          title: 'Children\'s Privacy',
+                          content:
+                              'Prompt Adda does not knowingly request sensitive personal information from children. Parents or guardians who believe that a child has provided personal information may contact us so that appropriate action can be taken.',
+                        ),
+                        const _PolicySection(
+                          title: 'Policy Updates',
+                          content:
+                              'This Privacy Policy may be updated when Prompt Adda features, legal requirements, or third-party services change. The latest version will be made available through the app or the official Prompt Adda privacy policy page.',
+                        ),
+                        const _PolicySection(
+                          title: 'Contact and Data Requests',
+                          content:
+                              'For privacy questions, consent concerns, or requests relating to your account data, including deletion requests, contact us at promptadda.app@gmail.com.',
                           showDivider: false,
                         ),
                       ],
